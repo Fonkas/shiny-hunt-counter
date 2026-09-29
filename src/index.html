@@ -1,0 +1,1241 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Shiny Hunt Counter — prototype</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#EEF0F8; --panel:#FFFFFF; --raised:#E3E6F3; --line:rgba(40,50,110,.14);
+  --ink:#1A1F3A; --muted:#5B6288; --accent:#3F5FE8; --accent-ink:#FFFFFF;
+  --gold:#C8901A; --danger:#D6334A; --ok:#1E9E72; --glow:rgba(63,95,232,.10);
+  --screen:#161B36; --screen-ink:#F2F4FF; --screen-muted:#9AA2D0;
+  --display:"Chakra Petch","Segoe UI",system-ui,sans-serif;
+  --body:"Figtree","Segoe UI",system-ui,-apple-system,sans-serif;
+  --shiny:linear-gradient(120deg,#F4C24E,#FFE7A3 30%,#7FE3C4 55%,#B79CFF 80%,#F4C24E);
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#141A2F; --panel:#1C2340; --raised:#273057; --line:rgba(160,172,235,.13);
+    --ink:#EDEFFA; --muted:#98A0C8; --accent:#6C8BFF; --accent-ink:#0C1233;
+    --gold:#F4C24E; --danger:#FF6B7A; --ok:#4FD6A4; --glow:rgba(108,139,255,.13);
+    --screen:#0D1127;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#141A2F; --panel:#1C2340; --raised:#273057; --line:rgba(160,172,235,.13);
+  --ink:#EDEFFA; --muted:#98A0C8; --accent:#6C8BFF; --accent-ink:#0C1233;
+  --gold:#F4C24E; --danger:#FF6B7A; --ok:#4FD6A4; --glow:rgba(108,139,255,.13);
+  --screen:#0D1127;
+}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*,*::before,*::after{box-sizing:border-box}
+body{margin:0;min-height:100vh;color:var(--ink);font:15px/1.5 var(--body);
+  background:radial-gradient(1100px 520px at 15% -12%,var(--glow),transparent 62%),var(--bg);background-attachment:fixed}
+h1,h2,h3{font-family:var(--display);margin:0;line-height:1.15;font-weight:700}
+h2{font-size:22px} h3{font-size:16px;font-weight:600}
+p{margin:0}
+button{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:8px}
+.muted{color:var(--muted)}
+.small{font-size:13px}
+img{max-width:100%}
+
+/* header */
+.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:30;display:flex;align-items:center;gap:18px;
+  padding:10px 22px;background:color-mix(in srgb,var(--bg) 86%,transparent);backdrop-filter:blur(14px);border-bottom:1px solid var(--line)}
+.brand{display:flex;align-items:center;gap:10px;font-family:var(--display);font-weight:700;font-size:17px;white-space:nowrap;background:none;border:0;cursor:pointer;padding:4px}
+.brand small{font-family:var(--body);font-weight:600;font-size:11px;color:var(--muted);border:1px solid var(--line);border-radius:6px;padding:1px 6px}
+nav.main{display:flex;gap:2px;overflow-x:auto;scrollbar-width:none;min-width:0;flex:1}
+nav.main button{background:none;border:0;color:var(--muted);padding:8px 10px;border-radius:9px;font-weight:600;font-size:14px;cursor:pointer;white-space:nowrap}
+nav.main button:hover{color:var(--ink)}
+nav.main button.on{color:var(--ink);background:var(--raised)}
+.totals{margin-left:auto;display:flex;align-items:center;gap:18px;white-space:nowrap;flex:none}
+.tot b{display:block;font:700 16px var(--display);font-variant-numeric:tabular-nums}
+.tot span{font-size:11.5px;color:var(--muted)}
+.profile{display:flex;align-items:center;gap:8px;padding:5px 10px 5px 5px;border-radius:99px;background:var(--panel);border:1px solid var(--line);font-size:13px;font-weight:600}
+.profile i{width:26px;height:26px;border-radius:50%;background:var(--shiny);display:block}
+.saved{font-size:12px;color:var(--muted)}
+main{max-width:1380px;margin:0 auto;padding:26px 22px 90px}
+@media (max-width:1520px){.tot.hide-sm{display:none}}
+@media (max-width:760px){.top{flex-wrap:wrap;gap:8px 12px}.totals{margin-left:0;order:3;width:100%;justify-content:space-between}nav.main{order:2;width:100%}}
+
+/* buttons */
+.btn{display:inline-flex;white-space:nowrap;align-items:center;justify-content:center;gap:8px;border:1px solid var(--line);background:var(--raised);color:var(--ink);
+  padding:9px 15px;border-radius:11px;font-weight:600;font-size:14px;cursor:pointer;transition:transform .08s,background .15s,box-shadow .15s}
+.btn:hover{background:color-mix(in srgb,var(--raised) 85%,var(--ink) 10%)}
+.btn:active{transform:scale(.96)}
+.btn.primary{background:var(--accent);color:var(--accent-ink);border-color:transparent}
+.btn.primary:hover{background:color-mix(in srgb,var(--accent) 88%,#fff)}
+.btn.gold{background:var(--shiny);background-size:200% 100%;color:#2B1C00;border-color:transparent;animation:sheen 6s linear infinite}
+.btn.danger{color:var(--danger)}
+.btn.ghost{background:transparent}
+.btn.sm{padding:6px 11px;font-size:13px;border-radius:9px}
+.btn:disabled{opacity:.4;cursor:not-allowed;transform:none}
+@keyframes sheen{to{background-position:200% 0}}
+
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:20px;padding:20px}
+.row{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.between{justify-content:space-between}
+.stack{display:flex;flex-direction:column;gap:14px}
+.pill{display:inline-flex;align-items:center;gap:6px;padding:3px 10px;border-radius:99px;font-size:12px;font-weight:600;background:var(--raised);color:var(--muted)}
+.pill.active{color:var(--ok);background:color-mix(in srgb,var(--ok) 16%,transparent)}
+.pill.paused{color:var(--gold);background:color-mix(in srgb,var(--gold) 16%,transparent)}
+.pill.completed{color:#2B1C00;background:var(--shiny)}
+.pill.abandoned{color:var(--muted)}
+.type{display:inline-block;font-size:11.5px;font-weight:600;padding:2px 8px;border-radius:99px;
+  background:color-mix(in srgb,var(--tc) 22%,transparent);color:color-mix(in srgb,var(--tc) 65%,var(--ink))}
+.kbd{display:inline-block;font:600 12px var(--display);padding:2px 7px;border-radius:6px;border:1px solid currentColor;opacity:.8}
+
+/* orb placeholder art */
+.orb{--s:64px;width:var(--s);height:var(--s);flex:none;border-radius:50%;position:relative;display:grid;place-items:center;
+  background:radial-gradient(circle at 34% 28%,color-mix(in srgb,var(--c1) 50%,#fff),var(--c1) 46%,color-mix(in srgb,var(--c2) 72%,#000) 100%);
+  box-shadow:inset 0 -6px 14px rgba(0,0,0,.28),0 8px 18px -8px var(--c1)}
+.orb::after{content:"";position:absolute;inset:17%;border-radius:50%;border:2px solid rgba(255,255,255,.32)}
+.orb span{font:700 calc(var(--s)*.25) var(--display);color:rgba(255,255,255,.92);letter-spacing:.02em;position:relative;z-index:1;text-shadow:0 1px 2px rgba(0,0,0,.3)}
+.orb.shiny{background:conic-gradient(from 210deg,#F4C24E,#FFE9A8,#7FE3C4,#B79CFF,#F4C24E);box-shadow:inset 0 -6px 14px rgba(0,0,0,.18),0 0 26px -4px rgba(244,194,78,.7)}
+.orb.shiny span{color:#3A2700;text-shadow:none}
+.spk{position:absolute;width:12px;height:12px;background:#fff;z-index:2;
+  clip-path:polygon(50% 0,61% 39%,100% 50%,61% 61%,50% 100%,39% 61%,0 50%,39% 39%);animation:tw 1.9s ease-in-out infinite}
+.spk.a{top:2%;right:8%}.spk.b{bottom:10%;left:0;width:9px;height:9px;animation-delay:.6s}.spk.c{top:30%;left:-6%;width:7px;height:7px;animation-delay:1.2s}
+@keyframes tw{0%,100%{transform:scale(.3) rotate(0);opacity:.2}50%{transform:scale(1) rotate(45deg);opacity:1}}
+.orb.reveal{animation:reveal .9s cubic-bezier(.2,.9,.3,1.3)}
+@keyframes reveal{0%{transform:scale(.6) rotate(-30deg);filter:brightness(3)}60%{transform:scale(1.12)}100%{transform:none;filter:none}}
+
+/* home */
+.home-top{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.25fr);gap:18px}
+@media (max-width:900px){.home-top{grid-template-columns:1fr}}
+.newhunt{display:flex;flex-direction:column;justify-content:space-between;gap:28px;text-align:left;cursor:pointer;border:0;border-radius:22px;padding:26px;min-height:210px;
+  background:var(--accent);color:var(--accent-ink);box-shadow:0 8px 0 color-mix(in srgb,var(--accent) 55%,#000);transition:transform .1s,box-shadow .1s}
+.newhunt:active{transform:translateY(5px);box-shadow:0 3px 0 color-mix(in srgb,var(--accent) 55%,#000)}
+.newhunt b{font:700 clamp(34px,4vw,48px)/1 var(--display)}
+.newhunt .plus{width:54px;height:54px;border-radius:16px;display:grid;place-items:center;background:rgba(255,255,255,.18);font:700 34px/1 var(--display)}
+.continue{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:20px}
+.continue .big{font:700 clamp(40px,5vw,64px)/1 var(--display);font-variant-numeric:tabular-nums}
+@media (max-width:600px){.continue{grid-template-columns:auto 1fr}.continue>.cta{grid-column:1/-1}}
+.quick{display:grid;grid-template-columns:repeat(3,minmax(0,1fr)) auto;gap:10px;align-items:end}
+@media (max-width:760px){.quick{grid-template-columns:1fr}}
+label.f{display:flex;flex-direction:column;gap:5px;font-size:12.5px;font-weight:600;color:var(--muted)}
+select,input[type=text],input[type=search],textarea{font:500 14px var(--body);color:var(--ink);background:var(--raised);border:1px solid var(--line);border-radius:10px;padding:9px 11px;min-width:0;width:100%}
+textarea{font-family:ui-monospace,Consolas,monospace;font-size:12px;min-height:180px;resize:vertical}
+.section-h{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin:34px 0 14px}
+
+.hrow{display:grid;grid-template-columns:auto minmax(0,1fr) auto auto;align-items:center;gap:16px;width:100%;text-align:left;cursor:pointer;
+  padding:12px 16px;border-radius:16px;background:var(--panel);border:1px solid var(--line);transition:border-color .15s,background .15s}
+.hrow:hover{border-color:color-mix(in srgb,var(--accent) 50%,var(--line))}
+.hrow .n{font:700 22px var(--display);font-variant-numeric:tabular-nums;text-align:right}
+.hrow .n small{display:block;font:500 12px var(--body);color:var(--muted)}
+.list{display:flex;flex-direction:column;gap:8px}
+@media (max-width:600px){.hrow{grid-template-columns:auto 1fr auto}.hrow .pill{display:none}}
+
+.empty{text-align:center;padding:42px 20px;border:1px dashed var(--line);border-radius:20px;color:var(--muted)}
+.empty h3{color:var(--ink);margin-bottom:6px}
+.empty .btn{margin-top:16px}
+
+/* hunt */
+.hunt{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(320px,1fr);gap:20px;align-items:start}
+@media (max-width:1000px){.hunt{grid-template-columns:1fr}}
+.hhead{display:flex;align-items:center;gap:18px;margin-bottom:18px}
+.hhead h1{font-size:clamp(30px,3.6vw,44px);letter-spacing:.01em}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.screen{position:relative;overflow:hidden;background:var(--screen);color:var(--screen-ink);border-radius:26px;padding:26px 26px 22px;
+  border:1px solid rgba(255,255,255,.07);box-shadow:inset 0 1px 0 rgba(255,255,255,.05),inset 0 -60px 120px -60px rgba(108,139,255,.35),0 24px 50px -30px rgba(0,0,0,.6)}
+.screen::before{content:"";position:absolute;inset:0;pointer-events:none;opacity:.35;
+  background-image:linear-gradient(rgba(255,255,255,.035) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.035) 1px,transparent 1px);background-size:22px 22px}
+.screen .lbl{color:var(--screen-muted);font-weight:600;font-size:14px;position:relative}
+.count{position:relative;font:700 clamp(84px,12vw,176px)/.95 var(--display);letter-spacing:-.02em;font-variant-numeric:tabular-nums;margin:6px 0 18px;text-shadow:0 0 40px rgba(108,139,255,.35)}
+.count.bump{animation:bump .28s cubic-bezier(.3,1.6,.5,1)}
+@keyframes bump{0%{transform:scale(.94);text-shadow:0 0 60px rgba(244,194,78,.9)}100%{transform:none}}
+.float{position:absolute;font:700 30px var(--display);color:var(--gold);pointer-events:none;animation:floatup .8s ease-out forwards;z-index:3}
+:root:not([data-theme="light"]) .float{color:#F4C24E}
+@keyframes floatup{from{transform:translateY(0);opacity:1}to{transform:translateY(-70px);opacity:0}}
+.inc{position:relative;width:100%;height:92px;border:0;border-radius:20px;cursor:pointer;background:#6C8BFF;color:#0C1233;
+  font:700 30px var(--display);display:flex;align-items:center;justify-content:center;gap:14px;
+  box-shadow:0 7px 0 #3B52B8,0 14px 30px -12px rgba(108,139,255,.7);transition:transform .06s,box-shadow .06s}
+.inc:active,.inc.press{transform:translateY(5px);box-shadow:0 2px 0 #3B52B8}
+.inc:disabled{opacity:.4;cursor:not-allowed}
+.inc .kbd{font-size:14px}
+.subbtns{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:18px;position:relative}
+.subbtns .btn{background:rgba(255,255,255,.07);border-color:rgba(255,255,255,.1);color:var(--screen-ink)}
+.subbtns .btn:hover{background:rgba(255,255,255,.13)}
+.subbtns .btn.danger{color:#FF8A97}
+.chainrow{position:relative;display:grid;grid-template-columns:1fr 1fr auto;gap:10px;align-items:center;margin:-4px 0 18px;padding:12px 14px;border-radius:14px;background:rgba(255,255,255,.05)}
+.chainrow b{display:block;font:700 26px var(--display);font-variant-numeric:tabular-nums}
+.chainrow span{font-size:12px;color:var(--screen-muted)}
+.sessbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:16px}
+.sessbar .clock{font:700 22px var(--display);font-variant-numeric:tabular-nums;margin-right:auto}
+.sessbar .clock small{display:block;font:500 12px var(--body);color:var(--muted)}
+.odds-big{font:700 38px/1 var(--display);font-variant-numeric:tabular-nums}
+.prob{font:700 30px/1 var(--display);font-variant-numeric:tabular-nums}
+.bar{height:9px;border-radius:99px;background:var(--raised);overflow:hidden;margin:10px 0 6px}
+.bar i{display:block;height:100%;border-radius:99px;background:linear-gradient(90deg,var(--accent),var(--gold));transition:width .3s}
+.kv{display:grid;grid-template-columns:1fr auto;gap:9px 16px;font-size:14px}
+.kv dt{color:var(--muted)} .kv dd{margin:0;text-align:right;font-weight:600;font-variant-numeric:tabular-nums}
+.tip{position:relative;display:inline-grid;place-items:center;width:18px;height:18px;border-radius:50%;border:1px solid var(--muted);color:var(--muted);font:700 11px var(--body);cursor:help;background:none;vertical-align:middle}
+.tip:hover::after,.tip:focus::after{content:attr(data-tip);position:absolute;right:-8px;top:26px;width:280px;z-index:20;text-align:left;
+  background:var(--ink);color:var(--bg);font:500 12.5px/1.45 var(--body);padding:10px 12px;border-radius:10px;box-shadow:0 10px 30px rgba(0,0,0,.3)}
+.info dl{display:grid;grid-template-columns:110px 1fr;gap:8px 12px;margin:12px 0 0;font-size:14px}
+.info dt{color:var(--muted)} .info dd{margin:0}
+.info .how{margin-top:14px;padding-top:14px;border-top:1px solid var(--line);font-size:14px;line-height:1.6;max-width:62ch}
+.chart{width:100%;height:auto;display:block}
+.chart text{fill:var(--muted);font:500 11px var(--body)}
+.chart .v{fill:var(--ink);font:600 11px var(--display)}
+.sesslist{display:flex;flex-direction:column;gap:6px;margin-top:12px;font-size:13.5px}
+.sesslist div{display:flex;justify-content:space-between;gap:10px;padding:8px 10px;border-radius:10px;background:var(--raised)}
+
+/* wizard / grids */
+.steps{display:flex;gap:6px;flex-wrap:wrap;margin:14px 0 20px}
+.stepb{display:flex;align-items:center;gap:8px;padding:7px 14px 7px 7px;border-radius:99px;border:1px solid var(--line);background:var(--panel);color:var(--muted);font-weight:600;font-size:13.5px;cursor:pointer}
+.stepb i{width:24px;height:24px;border-radius:50%;display:grid;place-items:center;font:700 12px var(--display);font-style:normal;background:var(--raised)}
+.stepb.on{color:var(--ink);border-color:var(--accent)} .stepb.on i{background:var(--accent);color:var(--accent-ink)}
+.stepb.done i{background:color-mix(in srgb,var(--ok) 25%,transparent);color:var(--ok)}
+.stepb:disabled{cursor:default;opacity:.55}
+.filters{display:grid;grid-template-columns:minmax(200px,2fr) repeat(4,minmax(110px,1fr));gap:8px;margin-bottom:10px}
+@media (max-width:900px){.filters{grid-template-columns:1fr 1fr}.filters>:first-child{grid-column:1/-1}}
+.tagrow{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px}
+.tog{padding:6px 12px;border-radius:99px;border:1px solid var(--line);background:transparent;color:var(--muted);font-weight:600;font-size:13px;cursor:pointer}
+.tog[aria-pressed="true"]{background:color-mix(in srgb,var(--accent) 18%,transparent);border-color:var(--accent);color:var(--ink)}
+.wizgrid{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:20px;align-items:start}
+@media (max-width:1000px){.wizgrid{grid-template-columns:1fr}}
+.side{position:sticky;top:84px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(158px,1fr));gap:10px}
+.pcard{position:relative}
+.pc-main{width:100%;display:flex;flex-direction:column;gap:8px;text-align:left;cursor:pointer;padding:14px;border-radius:16px;background:var(--panel);border:1px solid var(--line);transition:border-color .12s,transform .12s}
+.pc-main:hover{border-color:color-mix(in srgb,var(--accent) 55%,var(--line))}
+.pcard.sel .pc-main{border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent)}
+.pc-main .num{font:600 12px var(--display);color:var(--muted)}
+.pc-main .nm{font:700 16px var(--display)}
+.pc-main .bl{font-size:12.5px;color:var(--muted);line-height:1.4}
+.star{position:absolute;top:8px;right:8px;width:30px;height:30px;border-radius:50%;border:0;background:transparent;color:var(--muted);font-size:17px;cursor:pointer}
+.star.on{color:var(--gold)}
+.pair{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:16px 0}
+.pair>div{display:flex;flex-direction:column;align-items:center;gap:10px;padding:18px 10px;border-radius:16px;background:var(--raised);font-size:13px;font-weight:600;color:var(--muted)}
+.pair>div.sh{background:color-mix(in srgb,var(--gold) 12%,var(--raised))}
+.art{width:var(--s);height:var(--s);flex:none;position:relative;display:grid;place-items:center}
+.art img{width:100%;height:100%;object-fit:contain}
+.art.shiny::before{content:"";position:absolute;inset:8%;border-radius:50%;background:radial-gradient(circle,rgba(244,194,78,.35),transparent 70%)}
+.hcard .shot .art{position:absolute;left:16px;bottom:-26px}
+.guide{align-self:flex-start;font-size:11px;font-weight:600;padding:1px 8px;border-radius:99px;color:var(--accent);background:color-mix(in srgb,var(--accent) 14%,transparent)}
+.more{text-align:center;margin-top:18px}
+.slot{font-size:11.5px;color:var(--muted);line-height:1.4}
+.tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:10px}
+.tile{display:flex;flex-direction:column;gap:6px;text-align:left;padding:16px;border-radius:16px;background:var(--panel);border:1px solid var(--line);cursor:pointer;transition:border-color .12s}
+.tile:hover:not(:disabled){border-color:var(--accent)}
+.tile[aria-pressed="true"]{border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent)}
+.tile:disabled{cursor:not-allowed;opacity:.5}
+.tile b{font:700 17px var(--display)}
+.tile .odds{font:600 14px var(--display);color:var(--accent)}
+.tile .warn{color:var(--danger);font-size:13px;font-weight:600}
+.gen-h{font:600 14px var(--body);color:var(--muted);margin:20px 0 8px}
+details summary{cursor:pointer;color:var(--muted);font-weight:600;margin-top:22px}
+
+/* history */
+.hist{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:14px}
+.hcard{border-radius:20px;overflow:hidden;background:var(--panel);border:1px solid var(--line)}
+.hcard .shot{aspect-ratio:16/9;background:var(--raised) center/cover;display:grid;place-items:center;color:var(--muted);font-size:13px;position:relative}
+.hcard .shot .orb{position:absolute;left:16px;bottom:-26px;border:4px solid var(--panel)}
+.hcard .body{padding:34px 18px 18px}
+.hcard h3{font-size:20px}
+
+/* settings */
+.settings{display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:16px}
+.srow{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:11px 0;border-top:1px solid var(--line);font-size:14px}
+.srow:first-of-type{border-top:0}
+.srow select{width:auto}
+.switch{position:relative;width:44px;height:26px;border-radius:99px;border:0;background:var(--raised);cursor:pointer;flex:none;box-shadow:inset 0 0 0 1px var(--line)}
+.switch::after{content:"";position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:var(--muted);transition:transform .15s,background .15s}
+.switch[aria-checked="true"]{background:var(--accent)} .switch[aria-checked="true"]::after{transform:translateX(18px);background:#fff}
+.keybtn{min-width:86px}
+.keybtn.wait{border-color:var(--gold);color:var(--gold)}
+
+/* modal, toast, celebrate */
+.scrim{position:fixed;inset:0;z-index:100;display:grid;place-items:center;background:rgba(6,9,24,.62);backdrop-filter:blur(4px);animation:fade .15s}
+.modal{width:min(480px,calc(100% - 32px));max-height:calc(100% - 40px);overflow:auto;background:var(--panel);border:1px solid var(--line);border-radius:22px;padding:24px;box-shadow:0 30px 80px -20px rgba(0,0,0,.6)}
+.modal.wide{width:min(760px,calc(100% - 32px))}
+.modal h2{margin-bottom:10px}
+.modal .acts{display:flex;justify-content:flex-end;gap:8px;margin-top:20px;flex-wrap:wrap}
+@keyframes fade{from{opacity:0}}
+.toasts{position:fixed;left:50%;bottom:calc(22px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);z-index:110;display:flex;flex-direction:column;gap:8px;align-items:center;pointer-events:none}
+.toast{background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:12px;font-weight:600;font-size:14px;box-shadow:0 12px 30px rgba(0,0,0,.3);animation:toast .25s ease-out}
+.toast.ms{background:var(--shiny);color:#2B1C00;font:700 16px var(--display);padding:12px 20px}
+.toast.danger{background:var(--danger);color:#fff}
+@keyframes toast{from{transform:translateY(12px);opacity:0}}
+.celebrate{position:fixed;inset:0;z-index:120;display:grid;place-items:center;overflow:hidden;
+  background:radial-gradient(circle at 50% 45%,rgba(244,194,78,.35),rgba(7,9,24,.94) 62%);animation:fade .2s}
+.celebrate::before{content:"";position:absolute;inset:0;background:#fff;animation:flash .7s ease-out forwards;pointer-events:none}
+@keyframes flash{from{opacity:.95}to{opacity:0}}
+.celebrate .card{position:relative;text-align:center;color:#fff;display:flex;flex-direction:column;align-items:center;gap:14px;padding:20px}
+.celebrate h1{font-size:clamp(44px,8vw,86px);background:var(--shiny);background-size:200% 100%;-webkit-background-clip:text;background-clip:text;color:transparent;animation:sheen 3s linear infinite}
+.celebrate .orb{animation:reveal 1.1s cubic-bezier(.2,.9,.3,1.3)}
+.pt{position:absolute;left:50%;top:45%;width:10px;height:10px;clip-path:polygon(50% 0,61% 39%,100% 50%,61% 61%,50% 100%,39% 61%,0 50%,39% 39%);
+  animation:burst 1.6s cubic-bezier(.1,.7,.3,1) forwards}
+@keyframes burst{from{transform:translate(-50%,-50%) scale(.2);opacity:1}to{transform:translate(calc(-50% + var(--dx)),calc(-50% + var(--dy))) scale(1) rotate(160deg);opacity:0}}
+
+/* mini overlay */
+.mini{position:fixed;right:24px;bottom:calc(24px + env(safe-area-inset-bottom,0px));z-index:90;width:250px;border-radius:20px;overflow:hidden;
+  background:var(--screen);color:var(--screen-ink);border:1px solid rgba(255,255,255,.1);box-shadow:0 24px 60px -12px rgba(0,0,0,.65);opacity:var(--op,.96);transform-origin:bottom right}
+.mini .grip{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 10px 8px 14px;cursor:grab;background:rgba(255,255,255,.05);font-size:12px;color:var(--screen-muted);touch-action:none}
+.mini .grip button{background:none;border:0;color:var(--screen-muted);cursor:pointer;font-size:16px;padding:0 4px}
+.mini .in{padding:12px 16px 16px;text-align:center}
+.mini .nm{font:700 16px var(--display)} .mini .gm{font-size:12px;color:var(--screen-muted)}
+.mini .c{font:700 54px/1 var(--display);font-variant-numeric:tabular-nums;margin:10px 0 2px}
+.mini .c.bump{animation:bump .28s cubic-bezier(.3,1.6,.5,1)}
+.mini .l{font-size:12px;color:var(--screen-muted);margin-bottom:10px}
+.mini .inc{height:52px;font-size:20px;border-radius:14px;box-shadow:0 5px 0 #3B52B8}
+.mini .inc:active,.mini .inc.press{box-shadow:0 1px 0 #3B52B8;transform:translateY(4px)}
+.mini .meta{display:flex;justify-content:space-between;margin-top:12px;font:600 12.5px var(--display);color:var(--screen-muted)}
+
+body.compact main{padding-top:16px} body.compact .panel{padding:14px} body.compact .inc{height:74px}
+body.noanim *,body.noanim *::before,body.noanim *::after{animation:none!important;transition:none!important}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition:none!important}}
+</style>
+</head>
+<body>
+<header class="top" id="top"></header>
+<main id="main"></main>
+<div id="mini-root"></div>
+<div class="toasts" id="toasts" aria-live="polite"></div>
+
+<script>
+/* =========================================================================
+   DATA PACKS — in the desktop build these live in /data/packs/*.json and are
+   imported into SQLite. Nothing below this block references a species by name.
+   ========================================================================= */
+const TYPES={normal:'#A8A77A',fire:'#EE8130',water:'#6390F0',electric:'#F7D02C',grass:'#7AC74C',ice:'#96D9D6',fighting:'#C22E28',poison:'#A33EA1',ground:'#E2BF65',flying:'#A98FF3',psychic:'#F95587',bug:'#A6B91A',rock:'#B6A136',ghost:'#735797',dragon:'#6F35FC',dark:'#705746',steel:'#B7B7CE',fairy:'#D685AD'};
+const TAGS={L:'Legendary',M:'Mythical',UB:'Ultra Beast',P:'Paradox'};
+const STAGES=['Basic','Stage 1','Stage 2'];
+
+// Compact species pack: Name|<type codes><evolution stage><tag>. Parsed once at startup.
+const DEX_PACK=`Bulbasaur|gp0,Ivysaur|gp1,Venusaur|gp2,Charmander|f0,Charmeleon|f1,Charizard|fy2,Squirtle|w0,Wartortle|w1,Blastoise|w2,Caterpie|b0,Metapod|b1,Butterfree|by2,Weedle|bp0,Kakuna|bp1,Beedrill|bp2,Pidgey|ny0,Pidgeotto|ny1,Pidgeot|ny2,Rattata|n0,Raticate|n1,Spearow|ny0,Fearow|ny1,Ekans|p0,Arbok|p1,Pikachu|e1,Raichu|e2,Sandshrew|G0,Sandslash|G1,Nidoran♀|p0,Nidorina|p1,Nidoqueen|pG2,Nidoran♂|p0,Nidorino|p1,Nidoking|pG2,Clefairy|a1,Clefable|a2,Vulpix|f0,Ninetales|f1,Jigglypuff|na1,Wigglytuff|na2,Zubat|py0,Golbat|py1,Oddish|gp0,Gloom|gp1,Vileplume|gp2,Paras|bg0,Parasect|bg1,Venonat|bp0,Venomoth|bp1,Diglett|G0,Dugtrio|G1,Meowth|n0,Persian|n1,Psyduck|w0,Golduck|w1,Mankey|F0,Primeape|F1,Growlithe|f0,Arcanine|f1,Poliwag|w0,Poliwhirl|w1,Poliwrath|wF2,Abra|P0,Kadabra|P1,Alakazam|P2,Machop|F0,Machoke|F1,Machamp|F2,Bellsprout|gp0,Weepinbell|gp1,Victreebel|gp2,Tentacool|wp0,Tentacruel|wp1,Geodude|rG0,Graveler|rG1,Golem|rG2,Ponyta|f0,Rapidash|f1,Slowpoke|wP0,Slowbro|wP1,Magnemite|es0,Magneton|es1,Farfetch'd|ny0,Doduo|ny0,Dodrio|ny1,Seel|w0,Dewgong|wi1,Grimer|p0,Muk|p1,Shellder|w0,Cloyster|wi1,Gastly|hp0,Haunter|hp1,Gengar|hp2,Onix|rG0,Drowzee|P0,Hypno|P1,Krabby|w0,Kingler|w1,Voltorb|e0,Electrode|e1,Exeggcute|gP0,Exeggutor|gP1,Cubone|G0,Marowak|G1,Hitmonlee|F1,Hitmonchan|F1,Lickitung|n0,Koffing|p0,Weezing|p1,Rhyhorn|Gr0,Rhydon|Gr1,Chansey|n1,Tangela|g0,Kangaskhan|n0,Horsea|w0,Seadra|w1,Goldeen|w0,Seaking|w1,Staryu|w0,Starmie|wP1,Mr. Mime|Pa1,Scyther|by0,Jynx|iP1,Electabuzz|e1,Magmar|f1,Pinsir|b0,Tauros|n0,Magikarp|w0,Gyarados|wy1,Lapras|wi0,Ditto|n0,Eevee|n0,Vaporeon|w1,Jolteon|e1,Flareon|f1,Porygon|n0,Omanyte|rw0,Omastar|rw1,Kabuto|rw0,Kabutops|rw1,Aerodactyl|ry0,Snorlax|n1,Articuno|iy0L,Zapdos|ey0L,Moltres|fy0L,Dratini|d0,Dragonair|d1,Dragonite|dy2,Mewtwo|P0L,Mew|P0M,Chikorita|g0,Bayleef|g1,Meganium|g2,Cyndaquil|f0,Quilava|f1,Typhlosion|f2,Totodile|w0,Croconaw|w1,Feraligatr|w2,Sentret|n0,Furret|n1,Hoothoot|ny0,Noctowl|ny1,Ledyba|by0,Ledian|by1,Spinarak|bp0,Ariados|bp1,Crobat|py2,Chinchou|we0,Lanturn|we1,Pichu|e0,Cleffa|a0,Igglybuff|na0,Togepi|a0,Togetic|ay1,Natu|Py0,Xatu|Py1,Mareep|e0,Flaaffy|e1,Ampharos|e2,Bellossom|g2,Marill|wa1,Azumarill|wa2,Sudowoodo|r1,Politoed|w2,Hoppip|gy0,Skiploom|gy1,Jumpluff|gy2,Aipom|n0,Sunkern|g0,Sunflora|g1,Yanma|by0,Wooper|wG0,Quagsire|wG1,Espeon|P1,Umbreon|D1,Murkrow|Dy0,Slowking|wP1,Misdreavus|h0,Unown|P0,Wobbuffet|P1,Girafarig|nP0,Pineco|b0,Forretress|bs1,Dunsparce|n0,Gligar|Gy0,Steelix|sG1,Snubbull|a0,Granbull|a1,Qwilfish|wp0,Scizor|bs1,Shuckle|br0,Heracross|bF0,Sneasel|Di0,Teddiursa|n0,Ursaring|n1,Slugma|f0,Magcargo|fr1,Swinub|iG0,Piloswine|iG1,Corsola|wr0,Remoraid|w0,Octillery|w1,Delibird|iy0,Mantine|wy1,Skarmory|sy0,Houndour|Df0,Houndoom|Df1,Kingdra|wd2,Phanpy|G0,Donphan|G1,Porygon2|n1,Stantler|n0,Smeargle|n0,Tyrogue|F0,Hitmontop|F1,Smoochum|iP0,Elekid|e0,Magby|f0,Miltank|n0,Blissey|n2,Raikou|e0L,Entei|f0L,Suicune|w0L,Larvitar|rG0,Pupitar|rG1,Tyranitar|rD2,Lugia|Py0L,Ho-Oh|fy0L,Celebi|Pg0M,Treecko|g0,Grovyle|g1,Sceptile|g2,Torchic|f0,Combusken|fF1,Blaziken|fF2,Mudkip|w0,Marshtomp|wG1,Swampert|wG2,Poochyena|D0,Mightyena|D1,Zigzagoon|n0,Linoone|n1,Wurmple|b0,Silcoon|b1,Beautifly|by2,Cascoon|b1,Dustox|bp2,Lotad|wg0,Lombre|wg1,Ludicolo|wg2,Seedot|g0,Nuzleaf|gD1,Shiftry|gD2,Taillow|ny0,Swellow|ny1,Wingull|wy0,Pelipper|wy1,Ralts|Pa0,Kirlia|Pa1,Gardevoir|Pa2,Surskit|bw0,Masquerain|by1,Shroomish|g0,Breloom|gF1,Slakoth|n0,Vigoroth|n1,Slaking|n2,Nincada|bG0,Ninjask|by1,Shedinja|bh1,Whismur|n0,Loudred|n1,Exploud|n2,Makuhita|F0,Hariyama|F1,Azurill|na0,Nosepass|r0,Skitty|n0,Delcatty|n1,Sableye|Dh0,Mawile|sa0,Aron|sr0,Lairon|sr1,Aggron|sr2,Meditite|FP0,Medicham|FP1,Electrike|e0,Manectric|e1,Plusle|e0,Minun|e0,Volbeat|b0,Illumise|b0,Roselia|gp1,Gulpin|p0,Swalot|p1,Carvanha|wD0,Sharpedo|wD1,Wailmer|w0,Wailord|w1,Numel|fG0,Camerupt|fG1,Torkoal|f0,Spoink|P0,Grumpig|P1,Spinda|n0,Trapinch|G0,Vibrava|Gd1,Flygon|Gd2,Cacnea|g0,Cacturne|gD1,Swablu|ny0,Altaria|dy1,Zangoose|n0,Seviper|p0,Lunatone|rP0,Solrock|rP0,Barboach|wG0,Whiscash|wG1,Corphish|w0,Crawdaunt|wD1,Baltoy|GP0,Claydol|GP1,Lileep|rg0,Cradily|rg1,Anorith|rb0,Armaldo|rb1,Feebas|w0,Milotic|w1,Castform|n0,Kecleon|n0,Shuppet|h0,Banette|h1,Duskull|h0,Dusclops|h1,Tropius|gy0,Chimecho|P1,Absol|D0,Wynaut|P0,Snorunt|i0,Glalie|i1,Spheal|iw0,Sealeo|iw1,Walrein|iw2,Clamperl|w0,Huntail|w1,Gorebyss|w1,Relicanth|wr0,Luvdisc|w0,Bagon|d0,Shelgon|d1,Salamence|dy2,Beldum|sP0,Metang|sP1,Metagross|sP2,Regirock|r0L,Regice|i0L,Registeel|s0L,Latias|dP0L,Latios|dP0L,Kyogre|w0L,Groudon|G0L,Rayquaza|dy0L,Jirachi|sP0M,Deoxys|P0M,Turtwig|g0,Grotle|g1,Torterra|gG2,Chimchar|f0,Monferno|fF1,Infernape|fF2,Piplup|w0,Prinplup|w1,Empoleon|ws2,Starly|ny0,Staravia|ny1,Staraptor|ny2,Bidoof|n0,Bibarel|nw1,Kricketot|b0,Kricketune|b1,Shinx|e0,Luxio|e1,Luxray|e2,Budew|gp0,Roserade|gp2,Cranidos|r0,Rampardos|r1,Shieldon|rs0,Bastiodon|rs1,Burmy|b0,Wormadam|bg1,Mothim|by1,Combee|by0,Vespiquen|by1,Pachirisu|e0,Buizel|w0,Floatzel|w1,Cherubi|g0,Cherrim|g1,Shellos|w0,Gastrodon|wG1,Ambipom|n1,Drifloon|hy0,Drifblim|hy1,Buneary|n0,Lopunny|n1,Mismagius|h1,Honchkrow|Dy1,Glameow|n0,Purugly|n1,Chingling|P0,Stunky|pD0,Skuntank|pD1,Bronzor|sP0,Bronzong|sP1,Bonsly|r0,Mime Jr.|Pa0,Happiny|n0,Chatot|ny0,Spiritomb|hD0,Gible|dG0,Gabite|dG1,Garchomp|dG2,Munchlax|n0,Riolu|F0,Lucario|Fs1,Hippopotas|G0,Hippowdon|G1,Skorupi|pb0,Drapion|pD1,Croagunk|pF0,Toxicroak|pF1,Carnivine|g0,Finneon|w0,Lumineon|w1,Mantyke|wy0,Snover|gi0,Abomasnow|gi1,Weavile|Di1,Magnezone|es2,Lickilicky|n1,Rhyperior|Gr2,Tangrowth|g1,Electivire|e2,Magmortar|f2,Togekiss|ay2,Yanmega|by1,Leafeon|g1,Glaceon|i1,Gliscor|Gy1,Mamoswine|iG2,Porygon-Z|n2,Gallade|PF2,Probopass|rs1,Dusknoir|h2,Froslass|ih1,Rotom|eh0,Uxie|P0L,Mesprit|P0L,Azelf|P0L,Dialga|sd0L,Palkia|wd0L,Heatran|fs0L,Regigigas|n0L,Giratina|hd0L,Cresselia|P0L,Phione|w0M,Manaphy|w0M,Darkrai|D0M,Shaymin|g0M,Arceus|n0M,Victini|Pf0M,Snivy|g0,Servine|g1,Serperior|g2,Tepig|f0,Pignite|fF1,Emboar|fF2,Oshawott|w0,Dewott|w1,Samurott|w2,Patrat|n0,Watchog|n1,Lillipup|n0,Herdier|n1,Stoutland|n2,Purrloin|D0,Liepard|D1,Pansage|g0,Simisage|g1,Pansear|f0,Simisear|f1,Panpour|w0,Simipour|w1,Munna|P0,Musharna|P1,Pidove|ny0,Tranquill|ny1,Unfezant|ny2,Blitzle|e0,Zebstrika|e1,Roggenrola|r0,Boldore|r1,Gigalith|r2,Woobat|Py0,Swoobat|Py1,Drilbur|G0,Excadrill|Gs1,Audino|n0,Timburr|F0,Gurdurr|F1,Conkeldurr|F2,Tympole|w0,Palpitoad|wG1,Seismitoad|wG2,Throh|F0,Sawk|F0,Sewaddle|bg0,Swadloon|bg1,Leavanny|bg2,Venipede|bp0,Whirlipede|bp1,Scolipede|bp2,Cottonee|ga0,Whimsicott|ga1,Petilil|g0,Lilligant|g1,Basculin|w0,Sandile|GD0,Krokorok|GD1,Krookodile|GD2,Darumaka|f0,Darmanitan|f1,Maractus|g0,Dwebble|br0,Crustle|br1,Scraggy|DF0,Scrafty|DF1,Sigilyph|Py0,Yamask|h0,Cofagrigus|h1,Tirtouga|wr0,Carracosta|wr1,Archen|ry0,Archeops|ry1,Trubbish|p0,Garbodor|p1,Zorua|D0,Zoroark|D1,Minccino|n0,Cinccino|n1,Gothita|P0,Gothorita|P1,Gothitelle|P2,Solosis|P0,Duosion|P1,Reuniclus|P2,Ducklett|wy0,Swanna|wy1,Vanillite|i0,Vanillish|i1,Vanilluxe|i2,Deerling|ng0,Sawsbuck|ng1,Emolga|ey0,Karrablast|b0,Escavalier|bs1,Foongus|gp0,Amoonguss|gp1,Frillish|wh0,Jellicent|wh1,Alomomola|w0,Joltik|be0,Galvantula|be1,Ferroseed|gs0,Ferrothorn|gs1,Klink|s0,Klang|s1,Klinklang|s2,Tynamo|e0,Eelektrik|e1,Eelektross|e2,Elgyem|P0,Beheeyem|P1,Litwick|hf0,Lampent|hf1,Chandelure|hf2,Axew|d0,Fraxure|d1,Haxorus|d2,Cubchoo|i0,Beartic|i1,Cryogonal|i0,Shelmet|b0,Accelgor|b1,Stunfisk|Ge0,Mienfoo|F0,Mienshao|F1,Druddigon|d0,Golett|Gh0,Golurk|Gh1,Pawniard|Ds0,Bisharp|Ds1,Bouffalant|n0,Rufflet|ny0,Braviary|ny1,Vullaby|Dy0,Mandibuzz|Dy1,Heatmor|f0,Durant|bs0,Deino|Dd0,Zweilous|Dd1,Hydreigon|Dd2,Larvesta|bf0,Volcarona|bf1,Cobalion|sF0L,Terrakion|rF0L,Virizion|gF0L,Tornadus|y0L,Thundurus|ey0L,Reshiram|df0L,Zekrom|de0L,Landorus|Gy0L,Kyurem|di0L,Keldeo|wF0M,Meloetta|nP0M,Genesect|bs0M,Chespin|g0,Quilladin|g1,Chesnaught|gF2,Fennekin|f0,Braixen|f1,Delphox|fP2,Froakie|w0,Frogadier|w1,Greninja|wD2,Bunnelby|n0,Diggersby|nG1,Fletchling|ny0,Fletchinder|fy1,Talonflame|fy2,Scatterbug|b0,Spewpa|b1,Vivillon|by2,Litleo|fn0,Pyroar|fn1,Flabébé|a0,Floette|a1,Florges|a2,Skiddo|g0,Gogoat|g1,Pancham|F0,Pangoro|FD1,Furfrou|n0,Espurr|P0,Meowstic|P1,Honedge|sh0,Doublade|sh1,Aegislash|sh2,Spritzee|a0,Aromatisse|a1,Swirlix|a0,Slurpuff|a1,Inkay|DP0,Malamar|DP1,Binacle|rw0,Barbaracle|rw1,Skrelp|pw0,Dragalge|pd1,Clauncher|w0,Clawitzer|w1,Helioptile|en0,Heliolisk|en1,Tyrunt|rd0,Tyrantrum|rd1,Amaura|ri0,Aurorus|ri1,Sylveon|a1,Hawlucha|Fy0,Dedenne|ea0,Carbink|ra0,Goomy|d0,Sliggoo|d1,Goodra|d2,Klefki|sa0,Phantump|hg0,Trevenant|hg1,Pumpkaboo|hg0,Gourgeist|hg1,Bergmite|i0,Avalugg|i1,Noibat|yd0,Noivern|yd1,Xerneas|a0L,Yveltal|Dy0L,Zygarde|dG0L,Diancie|ra0M,Hoopa|Ph0M,Volcanion|fw0M,Rowlet|gy0,Dartrix|gy1,Decidueye|gh2,Litten|f0,Torracat|f1,Incineroar|fD2,Popplio|w0,Brionne|w1,Primarina|wa2,Pikipek|ny0,Trumbeak|ny1,Toucannon|ny2,Yungoos|n0,Gumshoos|n1,Grubbin|b0,Charjabug|be1,Vikavolt|be2,Crabrawler|F0,Crabominable|Fi1,Oricorio|fy0,Cutiefly|ba0,Ribombee|ba1,Rockruff|r0,Lycanroc|r1,Wishiwashi|w0,Mareanie|pw0,Toxapex|pw1,Mudbray|G0,Mudsdale|G1,Dewpider|wb0,Araquanid|wb1,Fomantis|g0,Lurantis|g1,Morelull|ga0,Shiinotic|ga1,Salandit|pf0,Salazzle|pf1,Stufful|nF0,Bewear|nF1,Bounsweet|g0,Steenee|g1,Tsareena|g2,Comfey|a0,Oranguru|nP0,Passimian|F0,Wimpod|bw0,Golisopod|bw1,Sandygast|hG0,Palossand|hG1,Pyukumuku|w0,Type: Null|n0L,Silvally|n1L,Minior|ry0,Komala|n0,Turtonator|fd0,Togedemaru|es0,Mimikyu|ha0,Bruxish|wP0,Drampa|nd0,Dhelmise|hg0,Jangmo-o|d0,Hakamo-o|dF1,Kommo-o|dF2,Tapu Koko|ea0L,Tapu Lele|Pa0L,Tapu Bulu|ga0L,Tapu Fini|wa0L,Cosmog|P0L,Cosmoem|P1L,Solgaleo|Ps2L,Lunala|Ph2L,Nihilego|rp0U,Buzzwole|bF0U,Pheromosa|bF0U,Xurkitree|e0U,Celesteela|sy0U,Kartana|gs0U,Guzzlord|Dd0U,Necrozma|P0L,Magearna|sa0M,Marshadow|Fh0M,Poipole|p0U,Naganadel|pd1U,Stakataka|rs0U,Blacephalon|fh0U,Zeraora|e0M,Meltan|s0M,Melmetal|s1M,Grookey|g0,Thwackey|g1,Rillaboom|g2,Scorbunny|f0,Raboot|f1,Cinderace|f2,Sobble|w0,Drizzile|w1,Inteleon|w2,Skwovet|n0,Greedent|n1,Rookidee|y0,Corvisquire|y1,Corviknight|ys2,Blipbug|b0,Dottler|bP1,Orbeetle|bP2,Nickit|D0,Thievul|D1,Gossifleur|g0,Eldegoss|g1,Wooloo|n0,Dubwool|n1,Chewtle|w0,Drednaw|wr1,Yamper|e0,Boltund|e1,Rolycoly|r0,Carkol|rf1,Coalossal|rf2,Applin|gd0,Flapple|gd1,Appletun|gd1,Silicobra|G0,Sandaconda|G1,Cramorant|yw0,Arrokuda|w0,Barraskewda|w1,Toxel|ep0,Toxtricity|ep1,Sizzlipede|fb0,Centiskorch|fb1,Clobbopus|F0,Grapploct|F1,Sinistea|h0,Polteageist|h1,Hatenna|P0,Hattrem|P1,Hatterene|Pa2,Impidimp|Da0,Morgrem|Da1,Grimmsnarl|Da2,Obstagoon|Dn2,Perrserker|s1,Cursola|h1,Sirfetch'd|F1,Mr. Rime|iP2,Runerigus|Gh1,Milcery|a0,Alcremie|a1,Falinks|F0,Pincurchin|e0,Snom|ib0,Frosmoth|ib1,Stonjourner|r0,Eiscue|i0,Indeedee|Pn0,Morpeko|eD0,Cufant|s0,Copperajah|s1,Dracozolt|ed0,Arctozolt|ei0,Dracovish|wd0,Arctovish|wi0,Duraludon|sd0,Dreepy|dh0,Drakloak|dh1,Dragapult|dh2,Zacian|a0L,Zamazenta|F0L,Eternatus|pd0L,Kubfu|F0L,Urshifu|FD1L,Zarude|Dg0M,Regieleki|e0L,Regidrago|d0L,Glastrier|i0L,Spectrier|h0L,Calyrex|Pg0L,Wyrdeer|nP1,Kleavor|br1,Ursaluna|Gn2,Basculegion|wh1,Sneasler|Fp1,Overqwil|Dp1,Enamorus|ay0L,Sprigatito|g0,Floragato|g1,Meowscarada|gD2,Fuecoco|f0,Crocalor|f1,Skeledirge|fh2,Quaxly|w0,Quaxwell|w1,Quaquaval|wF2,Lechonk|n0,Oinkologne|n1,Tarountula|b0,Spidops|b1,Nymble|b0,Lokix|bD1,Pawmi|e0,Pawmo|eF1,Pawmot|eF2,Tandemaus|n0,Maushold|n1,Fidough|a0,Dachsbun|a1,Smoliv|gn0,Dolliv|gn1,Arboliva|gn2,Squawkabilly|ny0,Nacli|r0,Naclstack|r1,Garganacl|r2,Charcadet|f0,Armarouge|fP1,Ceruledge|fh1,Tadbulb|e0,Bellibolt|e1,Wattrel|ey0,Kilowattrel|ey1,Maschiff|D0,Mabosstiff|D1,Shroodle|pn0,Grafaiai|pn1,Bramblin|gh0,Brambleghast|gh1,Toedscool|Gg0,Toedscruel|Gg1,Klawf|r0,Capsakid|g0,Scovillain|gf1,Rellor|b0,Rabsca|bP1,Flittle|P0,Espathra|P1,Tinkatink|as0,Tinkatuff|as1,Tinkaton|as2,Wiglett|w0,Wugtrio|w1,Bombirdier|yD0,Finizen|w0,Palafin|w1,Varoom|sp0,Revavroom|sp1,Cyclizar|dn0,Orthworm|s0,Glimmet|rp0,Glimmora|rp1,Greavard|h0,Houndstone|h1,Flamigo|yF0,Cetoddle|i0,Cetitan|i1,Veluza|wP0,Dondozo|w0,Tatsugiri|dw0,Annihilape|Fh2,Clodsire|pG1,Farigiraf|nP1,Dudunsparce|n1,Kingambit|Ds2,Great Tusk|GF0X,Scream Tail|aP0X,Brute Bonnet|gD0X,Flutter Mane|ha0X,Slither Wing|bF0X,Sandy Shocks|eG0X,Iron Treads|Gs0X,Iron Bundle|iw0X,Iron Hands|Fe0X,Iron Jugulis|Dy0X,Iron Moth|fp0X,Iron Thorns|re0X,Frigibax|di0,Arctibax|di1,Baxcalibur|di2,Gimmighoul|h0,Gholdengo|sh1,Wo-Chien|Dg0L,Chien-Pao|Di0L,Ting-Lu|DG0L,Chi-Yu|Df0L,Roaring Moon|dD0X,Iron Valiant|aF0X,Koraidon|Fd0L,Miraidon|ed0L,Walking Wake|wd0X,Iron Leaves|gP0X,Dipplin|gd1,Poltchageist|gh0,Sinistcha|gh1,Okidogi|pF0L,Munkidori|pP0L,Fezandipiti|pa0L,Ogerpon|g0L,Archaludon|sd2,Hydrapple|gd2,Gouging Fire|fd0X,Raging Bolt|ed0X,Iron Boulder|rP0X,Iron Crown|sP0X,Terapagos|n0L,Pecharunt|ph0M`;
+const TC={n:'normal',f:'fire',w:'water',e:'electric',g:'grass',i:'ice',F:'fighting',p:'poison',G:'ground',y:'flying',P:'psychic',b:'bug',r:'rock',h:'ghost',d:'dragon',D:'dark',s:'steel',a:'fairy'};
+const TAGC={L:'L',M:'M',U:'UB',X:'P'};
+const GEN_END=[151,251,386,493,649,721,809,905,1025];
+const REGIONS=['Kanto','Johto','Hoenn','Sinnoh','Unova','Kalos','Alola','Galar','Paldea'];
+const BLURBS={1:'Kanto Grass starter.',4:'Kanto Fire starter.',7:'Kanto Water starter.',25:'Forest dweller, evolves from Pichu.',129:'Bites on almost any rod, almost anywhere.',130:'Evolves from Magikarp at level 20.',133:'Branches into eight evolutions.',147:'Rare Dragon type, usually fished.',150:'Post-game legendary in Kanto.',151:'Mythical, mostly event-only.',246:'Start of a pseudo-legendary line.',280:'Rare grass encounter in Hoenn.',443:'Cave-dwelling pseudo-legendary line.',885:'Rare overworld spawn in Galar.',906:'Paldea Grass starter.'};
+// Alternate forms, taken from the user's Pokédex spreadsheet.
+const FORMS_PACK={741:[['Baile Style','fy'],['Pom-Pom Style','ey'],["Pa'u Style",'Py'],['Sensu Style','hy']],800:[['Normal','P'],['Dusk Mane','Ps'],['Dawn Wings','Ph']],
+ 888:[['Hero of Many Battles','a'],['Crowned Sword','as']],889:[['Hero of Many Battles','F'],['Crowned Shield','Fs']],892:[['Single Strike Style','FD'],['Rapid Strike Style','Fw']],
+ 898:[['Normal','Pg'],['Ice Rider','Pi'],['Shadow Rider','Ph']],1017:[['Teal Mask','g'],['Hearthflame Mask','gf'],['Wellspring Mask','gw'],['Cornerstone Mask','gr']]};
+const SPECIES=DEX_PACK.split(',').map((raw,i)=>{const k=raw.lastIndexOf('|'),name=raw.slice(0,k),m=raw.slice(k+1).match(/^([a-zA-Z]{1,2})(\d)([LMUX]?)$/);
+  const dex=i+1,gen=GEN_END.findIndex(e=>dex<=e)+1;
+  return{dex,name,types:[...m[1]].map(c=>TC[c]),gen,stage:+m[2],tags:m[3]?[TAGC[m[3]]]:[],blurb:BLURBS[dex]||REGIONS[gen-1]+', Generation '+gen+'.',forms:(FORMS_PACK[dex]||[]).map(([n,t])=>({name:n,types:[...t].map(c=>TC[c])}))}});
+
+// baseOdds: null means no shiny mechanic. charm: odds with Shiny Charm. masuda: [odds, odds with charm] or null when there is no breeding.
+const GAMES=[
+ ['red','Red',1,'Kanto','Game Boy',null,null,null],['blue','Blue',1,'Kanto','Game Boy',null,null,null],['yellow','Yellow',1,'Kanto','Game Boy',null,null,null],
+ ['gold','Gold',2,'Johto','Game Boy Color',8192,null,null],['silver','Silver',2,'Johto','Game Boy Color',8192,null,null],['crystal','Crystal',2,'Johto','Game Boy Color',8192,null,null],
+ ['ruby','Ruby',3,'Hoenn','Game Boy Advance',8192,null,null],['sapphire','Sapphire',3,'Hoenn','Game Boy Advance',8192,null,null],['emerald','Emerald',3,'Hoenn','Game Boy Advance',8192,null,null],
+ ['firered','FireRed',3,'Kanto','Game Boy Advance',8192,null,null],['leafgreen','LeafGreen',3,'Kanto','Game Boy Advance',8192,null,null],
+ ['diamond','Diamond',4,'Sinnoh','Nintendo DS',8192,null,[1638]],['pearl','Pearl',4,'Sinnoh','Nintendo DS',8192,null,[1638]],['platinum','Platinum',4,'Sinnoh','Nintendo DS',8192,null,[1638]],
+ ['heartgold','HeartGold',4,'Johto','Nintendo DS',8192,null,[1638]],['soulsilver','SoulSilver',4,'Johto','Nintendo DS',8192,null,[1638]],
+ ['black','Black',5,'Unova','Nintendo DS',8192,null,[1365]],['white','White',5,'Unova','Nintendo DS',8192,null,[1365]],
+ ['black2','Black 2',5,'Unova','Nintendo DS',8192,2731,[1365,1024]],['white2','White 2',5,'Unova','Nintendo DS',8192,2731,[1365,1024]],
+ ['x','X',6,'Kalos','Nintendo 3DS',4096,1365,[683,512]],['y','Y',6,'Kalos','Nintendo 3DS',4096,1365,[683,512]],['omegaruby','Omega Ruby',6,'Hoenn','Nintendo 3DS',4096,1365,[683,512]],['alphasapphire','Alpha Sapphire',6,'Hoenn','Nintendo 3DS',4096,1365,[683,512]],
+ ['sun','Sun',7,'Alola','Nintendo 3DS',4096,1365,[683,512]],['moon','Moon',7,'Alola','Nintendo 3DS',4096,1365,[683,512]],['ultrasun','Ultra Sun',7,'Alola','Nintendo 3DS',4096,1365,[683,512]],['ultramoon','Ultra Moon',7,'Alola','Nintendo 3DS',4096,1365,[683,512]],
+ ['letsgopikachu',"Let's Go, Pikachu!",7,'Kanto','Nintendo Switch',4096,1365,null],['letsgoeevee',"Let's Go, Eevee!",7,'Kanto','Nintendo Switch',4096,1365,null],
+ ['sword','Sword',8,'Galar','Nintendo Switch',4096,1365,[683,512]],['shield','Shield',8,'Galar','Nintendo Switch',4096,1365,[683,512]],
+ ['brilliantdiamond','Brilliant Diamond',8,'Sinnoh','Nintendo Switch',4096,1365,[683,512]],['shiningpearl','Shining Pearl',8,'Sinnoh','Nintendo Switch',4096,1365,[683,512]],
+ ['legendsarceus','Legends: Arceus',8,'Hisui','Nintendo Switch',4096,1024,null],
+ ['scarlet','Scarlet',9,'Paldea','Nintendo Switch',4096,1365,[683,512]],['violet','Violet',9,'Paldea','Nintendo Switch',4096,1365,[683,512]]
+].map(([id,short,gen,region,platform,baseOdds,charm,masuda])=>({id,short,name:'Pokémon '+short,gen,region,platform,baseOdds,charm,masuda}));
+
+const METHODS={
+ random:{name:'Random encounters',counter:'Encounters',unit:'encounter',kind:'count',desc:'Count every eligible wild encounter, one by one.'},
+ softreset:{name:'Soft reset',counter:'Soft resets',unit:'reset',kind:'count',desc:'Save before a starter, gift or static Pokémon and reset until it is shiny.'},
+ static:{name:'Static encounter',counter:'Resets',unit:'reset',kind:'count',desc:'A fixed, one-off encounter in the world.'},
+ masuda:{name:'Masuda method',counter:'Eggs hatched',unit:'egg',kind:'count',desc:'Breed parents from games of different languages for boosted odds.'},
+ fishing:{name:'Fishing',counter:'Fishing encounters',unit:'bite',kind:'count',desc:'Count each bite that turns into an encounter.'},
+ chainfish:{name:'Chain fishing',counter:'Encounters',unit:'encounter',kind:'chain',desc:'Consecutive hooks at one spot raise the odds until the chain breaks.'},
+ radar:{name:'Poké Radar chaining',counter:'Encounters',unit:'encounter',kind:'chain',desc:'Chain shaking grass patches of the same species to raise the odds.'},
+ outbreak:{name:'Mass outbreak',counter:'Outbreak encounters',unit:'encounter',kind:'count',desc:'Hunt inside a temporary outbreak of one species.'}
+};
+
+const AV=[];
+function A(games,e){games.forEach(g=>AV.push({time:'any',weather:'any',...e,game:g,id:e.sp+'-'+g+'-'+e.method}))}
+const FRLG=['firered','leafgreen'],GSC=['gold','silver','crystal'],SWSH=['sword','shield'],SV=['scarlet','violet'],BDSP=['brilliantdiamond','shiningpearl'],HGSS=['heartgold','soulsilver'];
+const oaksLab={locs:[{name:"Professor Oak's lab",area:'Pallet Town',detail:'Starter choice'}],req:'Start of the game.',odds:[['Base',8192]],how:"Save in front of the Poké Balls, pick the starter and check its summary screen. If it isn't shiny, soft reset and try again."};
+[1,4,7].forEach(sp=>A(FRLG,{sp,method:'softreset',...oaksLab}));
+A(FRLG,{sp:25,method:'random',locs:[{name:'Viridian Forest',area:'Kanto',detail:'Tall grass, uncommon'},{name:'Power Plant',area:'Kanto',detail:'Needs Surf'}],req:'Early game for Viridian Forest.',odds:[['Base',8192]],how:'Walk through tall grass and count every wild encounter, not only Pikachu: any of them can be shiny. Gen 3 has no Shiny Charm and no chaining.'});
+A(['platinum'],{sp:25,method:'radar',locs:[{name:'Trophy Garden',area:'Route 212',detail:'Daily Pokémon, rotates'}],req:'National Pokédex and the Poké Radar.',odds:[['Chain 0 (base)',8192],['Chain 40',200,true]],how:'Use the Poké Radar in tall grass and only step into patches that shake like the previous one. Keep the chain going to 40; running from an encounter or walking into the wrong patch breaks it.'});
+A(BDSP,{sp:25,method:'radar',locs:[{name:'Trophy Garden',area:'Route 212',detail:'Daily Pokémon, rotates'}],req:'National Pokédex and the Poké Radar.',odds:[['Chain 0 (base)',4096],['Chain 0 with Shiny Charm',1365],['Chain 40',99,true]],how:'Chain same-species patches with the Poké Radar. At chain 40 the odds reach their cap; shiny patches sparkle, so you can see a shiny before entering it.'});
+A(GSC,{sp:129,method:'fishing',locs:[{name:'Lake of Rage',area:'Johto',detail:'Any rod'},{name:'Route 32 pier',area:'Johto',detail:'Old Rod is given nearby'}],req:'A fishing rod.',odds:[['Base',8192]],how:'Fish and count every bite that turns into a battle. In Gen 2 shininess comes from the DVs, so a shiny Magikarp always has the same fixed stats.'});
+A(['x','y'],{sp:129,method:'chainfish',locs:[{name:'Most Kalos fishing spots',area:'Kalos',detail:'Any rod'}],req:'Any fishing rod.',odds:[['Chain 0 (base)',4096],['Chain 0 with Shiny Charm',1365],['Chain 20+',100,true],['Chain 20+ with Shiny Charm',96,true]],how:'Reel in the moment the "!" appears and run from each encounter. Missing a bite or leaving the spot breaks the chain. The bonus stops growing once the chain reaches 20.'});
+A(GSC,{sp:130,method:'static',guaranteed:true,locs:[{name:'Lake of Rage',area:'Johto',detail:'Static encounter on the lake'}],req:'Story event, needs Surf.',odds:[['Guaranteed shiny',1]],how:'The red Gyarados at the Lake of Rage is always shiny.'});
+A(GSC,{sp:133,method:'softreset',locs:[{name:"Bill's house",area:'Goldenrod City',detail:'Gift Pokémon'}],req:'Talk to Bill after meeting him in Ecruteak City. Keep a free party slot.',odds:[['Base',8192]],how:'Save before accepting Eevee, check its summary, and soft reset if it is normal.'});
+A(SWSH,{sp:133,method:'random',locs:[{name:'Route 4',area:'Galar',detail:'Overworld and hidden in tall grass'}],odds:[['Base',4096],['Shiny Charm',1365]],how:'Walk through the tall grass and count every battle. Shiny Pokémon never appear as overworld symbols here, only in random "!" encounters.'});
+const galarNursery=[{name:'Route 5 Nursery',area:'Galar',detail:'Near Hulbury'},{name:'Bridge Field Nursery',area:'Wild Area',detail:''}];
+A(SWSH,{sp:133,method:'masuda',locs:galarNursery,req:'A parent from a different-language game, usually a Ditto.',odds:[['Masuda',683],['Masuda with Shiny Charm',512]],how:'Leave the foreign Ditto and an Eevee at the Nursery, collect eggs, and hatch them with a Flame Body or Magma Armor Pokémon in the party to halve hatch time.'});
+const picnic=[{name:'Picnic',area:'Anywhere in Paldea',detail:'Eggs appear in the basket'}];
+A(SV,{sp:133,method:'masuda',locs:picnic,req:'A parent from a different-language game. An Egg Power sandwich speeds things up.',odds:[['Masuda',683],['Masuda with Shiny Charm',512]],how:'Start a picnic with both parents in your party and collect from the basket. Hatch while riding with a Flame Body Pokémon in the party.'});
+A(SV,{sp:133,method:'outbreak',locs:[{name:'Active Eevee outbreak',area:'Paldea',detail:'Location varies, check the map'}],req:'An active Eevee outbreak.',odds:[['0–29 defeated',4096],['30–59 defeated',2048],['60+ defeated',1365],['60+ with Shiny Charm',819],['60+, Charm, Sparkling Power Lv. 3',512]],how:'Defeat or catch 60 Pokémon from the outbreak to max the bonus. Then reset spawns by starting and ending a picnic, and check each new group.'});
+A(['legendsarceus'],{sp:133,method:'outbreak',locs:[{name:'Obsidian Fieldlands',area:'Hisui',detail:'Outbreak location varies'}],req:'An active Eevee mass outbreak.',odds:[['Mass outbreak',158,true],['With Shiny Charm and perfect research',132,true]],how:'Clear the outbreak waves. Shiny Pokémon sparkle and play a sound in the overworld, so you can spot them without a battle.'});
+A(GSC,{sp:147,method:'fishing',locs:[{name:"Dragon's Den",area:'Blackthorn City',detail:'Good Rod or Super Rod'}],req:'Surf and a Good or Super Rod.',odds:[['Base',8192]],how:'Fish in the Dragon\u2019s Den water and count every bite that becomes a battle.'});
+A(FRLG,{sp:150,method:'softreset',locs:[{name:'Cerulean Cave',area:'Kanto',detail:'Deepest floor'}],req:'Post-game, after the Sevii Islands story.',odds:[['Base',8192]],how:'Save right in front of Mewtwo. The shiny check happens when the battle starts; reset if it is normal.'});
+A(HGSS,{sp:246,method:'random',locs:[{name:'Mt. Silver',area:'Johto',detail:'Interior, rare'}],req:'Post-game access to Mt. Silver.',odds:[['Base',8192]],how:'Walk the cave floors and count every wild encounter.'});
+A(HGSS,{sp:246,method:'masuda',locs:[{name:'Day Care',area:'Route 34',detail:''}],req:'A parent from a different-language game.',odds:[['Masuda',1638,true]],how:'Breed a Larvitar with a foreign parent at the Route 34 Day Care, then hatch with a Flame Body Pokémon in the party.'});
+A(['soulsilver'],{sp:249,method:'softreset',locs:[{name:'Whirl Islands',area:'Johto',detail:'Deepest chamber'}],req:'Silver Wing and Tidal Bell.',odds:[['Base',8192]],how:'Save before talking to Lugia and reset if the battle opens without a shiny sparkle.'});
+A(['heartgold'],{sp:250,method:'softreset',locs:[{name:'Bell Tower summit',area:'Ecruteak City',detail:''}],req:'Clear Bell and Rainbow Wing.',odds:[['Base',8192]],how:'Save before climbing to the top of the Bell Tower and reset if Ho-Oh is normal.'});
+A(['emerald'],{sp:280,method:'random',time:'any',locs:[{name:'Route 102',area:'Hoenn',detail:'Tall grass, rare'}],req:'Available from the start.',odds:[['Base',8192]],how:'Ralts is a rare spawn here, so count every encounter on the route.'});
+A(['emerald'],{sp:384,method:'softreset',locs:[{name:'Sky Pillar',area:'Hoenn',detail:'Summit'}],req:'Post-game; the Mach Bike is needed to climb.',odds:[['Base',8192]],how:'Save on the summit before approaching Rayquaza and reset if it is normal.'});
+const briefcase={locs:[{name:"Professor Rowan's briefcase",area:'Route 201',detail:'Starter choice'}],req:'Start of the game.',odds:[['Base',8192]],how:'Save before opening the briefcase. The starter is sent straight into a battle, so you see whether it is shiny right away.'};
+[387,390,393].forEach(sp=>A(['diamond','pearl','platinum'],{sp,method:'softreset',...briefcase}));
+A(['platinum'],{sp:443,method:'random',locs:[{name:'Wayward Cave',area:'Sinnoh',detail:'Hidden entrance under Cycling Road'}],req:'Find the hidden entrance below Cycling Road.',odds:[['Base',8192]],how:'Gible only appears through the hidden entrance. Count every encounter in that section.'});
+A(BDSP,{sp:443,method:'masuda',locs:[{name:'Pokémon Day Care',area:'Solaceon Town',detail:''}],req:'A parent from a different-language game.',odds:[['Masuda',683],['Masuda with Shiny Charm',512]],how:'Breed a Gible with a foreign Ditto in Solaceon Town and hatch with a Flame Body Pokémon in the party.'});
+A(SWSH,{sp:885,method:'random',weather:'varies',locs:[{name:'Lake of Outrage',area:'Wild Area',detail:'Overworld, rare'}],req:'Wild Area access; strong Pokémon for the high levels.',odds:[['Base',4096],['Shiny Charm',1365]],how:'Dreepy spawn depends on the Wild Area weather. Count each battle.'});
+A(SWSH,{sp:885,method:'masuda',locs:galarNursery,req:'A Dreepy and a parent from a different-language game.',odds:[['Masuda',683],['Masuda with Shiny Charm',512]],how:'Breed Dreepy with a foreign Ditto and hatch with a Flame Body Pokémon.'});
+A(SV,{sp:906,method:'softreset',locked:'The starters you receive in Scarlet and Violet are shiny locked, so they can never be shiny.',locs:[{name:'Starter choice',area:'Cabo Poco',detail:''}],odds:[['Shiny locked',0]],how:''});
+A(SV,{sp:906,method:'masuda',locs:picnic,req:'Your Sprigatito and a Ditto from a different-language game.',odds:[['Masuda',683],['Masuda with Shiny Charm',512]],how:'Breed your starter with a foreign Ditto at a picnic. This is the way to get a shiny Sprigatito, since the gift itself is locked.'});
+A(['scarlet'],{sp:984,method:'random',locs:[{name:'Area Zero',area:'Paldea',detail:'Great Crater'}],req:'After the main story ends.',odds:[['Base',4096],['Shiny Charm',1365]],how:'Great Tusk is exclusive to Scarlet. Count each encounter in Area Zero.'});
+
+const MILESTONES=[100,500,1000,5000,10000];
+const TIME_LBL={any:'⏱ Any',day:'☀ Day',night:'🌙 Night'};
+const WEATHER_LBL={any:'Any',clear:'☀ Clear',rain:'🌧 Rain',snow:'❄ Snow',fog:'🌫 Fog',varies:'Varies with Wild Area weather'};
+
+/* ========================= i18n: Portuguese (Portugal) =========================
+   The UI is written in English; this layer translates what is shown on screen.
+   Exact strings go in PT, sentences with numbers or names go in PT_RULES. */
+const PT={
+'Home':'Início','My hunts':'Os meus hunts','Database':'Pokédex','Games':'Jogos','History':'Histórico','Statistics':'Estatísticas','Settings':'Definições',
+'Prototype':'Protótipo','Hunts':'Hunts','Encounters':'Encontros','Shinies':'Shinies','Local save':'Perfil local','Main':'Principal',
+'Saved just now':'Guardado agora mesmo','Saving…':'A guardar…',
+'New hunt':'Novo hunt','+ New hunt':'+ Novo hunt','Pick a Pokémon, a game and a method.':'Escolhe um Pokémon, um jogo e um método.',
+'Continue hunting':'Continuar o hunt','Open hunt':'Abrir hunt','No hunt in progress':'Nenhum hunt a decorrer','Start one and it will wait for you here.':'Começa um e ele fica aqui à tua espera.',
+'Quick hunt':'Hunt rápido','Skips the guide and starts counting.':'Salta o guia e começa logo a contar.','Choose…':'Escolher…','Start hunt':'Começar hunt',
+'Active hunts':'Hunts ativos','All hunts':'Todos os hunts','No active hunts':'Nenhum hunt ativo','Your hunts appear here while you work on them.':'Os teus hunts aparecem aqui enquanto os fazes.','Start a hunt':'Começar um hunt',
+'Recent shinies':'Shinies recentes','Shiny history':'Histórico de shinies','Shinies you record will show up here.':'Os shinies que registares aparecem aqui.',
+'Active':'Ativo','Paused':'Em pausa','Completed':'Concluído','Abandoned':'Abandonado','Nothing here':'Nada por aqui','No hunts with this status.':'Não há hunts com este estado.',
+'‹ My hunts':'‹ Os meus hunts','Show mini counter':'Mostrar mini contador','Hide mini counter':'Esconder mini contador','Hunt status':'Estado do hunt','Delete':'Apagar',
+'Rename counter':'Mudar nome do contador','Chain broke':'Chain quebrada','Reset':'Repor','Start session':'Começar sessão','Pause':'Pausa','Resume':'Retomar','End session':'Terminar sessão',
+'I found it!':'Encontrei!','Reopen hunt':'Reabrir hunt','Current chain':'Chain atual','Highest chain':'Chain mais alta',
+'No session running. Total':'Nenhuma sessão a decorrer. Total','Session running. Total':'Sessão a decorrer. Total','Session paused. Total':'Sessão em pausa. Total',
+'Shiny odds':'Odds de shiny','Your hunt':'O teu hunt','About this number':'Sobre este número',
+'Shiny odds are independent for each eligible encounter. This value represents the cumulative probability of finding at least one Shiny after the recorded number of attempts.':'As odds de shiny são independentes em cada encontro. Este valor é a probabilidade acumulada de encontrares pelo menos um shiny depois do número de tentativas registado.',
+'the odds.':'o valor das odds.','Chain odds change as the chain grows. Pick the row that matches your current chain.':'As odds mudam à medida que a chain cresce. Escolhe a opção que corresponde à tua chain atual.',
+'This session':'Esta sessão','Per hour':'Por hora','Time played':'Tempo de jogo','Longest session':'Sessão mais longa','Sessions':'Sessões','None yet':'Ainda nenhuma',
+'How to hunt':'Como fazer o hunt','Method':'Método','Location':'Localização','Time':'Hora','Weather':'Tempo','Requirements':'Requisitos','None':'Nenhum',
+'⏱ Any':'⏱ Qualquer','☀ Day':'☀ Dia','🌙 Night':'🌙 Noite','Any':'Qualquer','☀ Clear':'☀ Limpo','🌧 Rain':'🌧 Chuva','❄ Snow':'❄ Neve','🌫 Fog':'🌫 Nevoeiro','Varies with Wild Area weather':'Depende do tempo na Wild Area',
+'Session history':'Histórico de sessões','Finished sessions are listed here. A session starts on your first +1.':'As sessões terminadas aparecem aqui. Uma sessão começa no teu primeiro +1.',
+'Bar chart':'Gráfico de barras','Odds modifier':'Modificador de odds',
+'Random encounters':'Encontros aleatórios','Soft reset':'Soft reset','Static encounter':'Encontro estático','Masuda method':'Método Masuda','Fishing':'Pesca','Chain fishing':'Chain fishing','Poké Radar chaining':'Chaining com Poké Radar','Mass outbreak':'Mass outbreak',
+'Soft resets':'Soft resets','Resets':'Resets','Eggs hatched':'Ovos chocados','Fishing encounters':'Encontros a pescar','Outbreak encounters':'Encontros no outbreak',
+'Count every eligible wild encounter, one by one.':'Conta cada encontro selvagem, um a um.',
+'Save before a starter, gift or static Pokémon and reset until it is shiny.':'Grava antes de um inicial, oferta ou Pokémon estático e faz reset até sair shiny.',
+'A fixed, one-off encounter in the world.':'Um encontro fixo e único no mapa.',
+'Breed parents from games of different languages for boosted odds.':'Cruza pais de jogos em línguas diferentes para melhores odds.',
+'Count each bite that turns into an encounter.':'Conta cada picada que dá num encontro.',
+'Consecutive hooks at one spot raise the odds until the chain breaks.':'Pescar seguido no mesmo sítio melhora as odds até a chain quebrar.',
+'Chain shaking grass patches of the same species to raise the odds.':'Encadeia tufos de relva a abanar da mesma espécie para melhorar as odds.',
+'Hunt inside a temporary outbreak of one species.':'Faz o hunt num outbreak temporário de uma espécie.',
+'Base':'Base','Shiny Charm':'Shiny Charm','Masuda':'Masuda','Masuda with Shiny Charm':'Masuda com Shiny Charm','Chain 0 (base)':'Chain 0 (base)','Chain 0 with Shiny Charm':'Chain 0 com Shiny Charm','Chain 40':'Chain 40','Chain 20+':'Chain 20+','Chain 20+ with Shiny Charm':'Chain 20+ com Shiny Charm',
+'0–29 defeated':'0–29 derrotados','30–59 defeated':'30–59 derrotados','60+ defeated':'60+ derrotados','60+ with Shiny Charm':'60+ com Shiny Charm','60+, Charm, Sparkling Power Lv. 3':'60+, Charm e Sparkling Power Nv. 3',
+'Mass outbreak':'Mass outbreak','With Shiny Charm and perfect research':'Com Shiny Charm e pesquisa perfeita','Guaranteed shiny':'Shiny garantido','Shiny locked':'Shiny locked','Always shiny':'Sempre shiny',
+'Pokémon':'Pokémon','Game':'Jogo','Location and odds':'Localização e odds','Cancel':'Cancelar','Search by name, number or type':'Procurar por nome, número ou tipo','Search Pokémon':'Procurar Pokémon',
+'All generations':'Todas as gerações','All types':'Todos os tipos','Guide: any game':'Guia: qualquer jogo','Guide: any method':'Guia: qualquer método','Guide game':'Jogo do guia','Guide method':'Método do guia',
+'Any stage':'Qualquer estágio','Evolution stage':'Estágio de evolução','Generation':'Geração','Type':'Tipo','Basic':'Básico','Stage 1':'Estágio 1','Stage 2':'Estágio 2',
+'Legendary':'Lendário','Mythical':'Mítico','Ultra Beast':'Ultra Beast','Paradox':'Paradox','Has a guide':'Com guia','★ Favorites':'★ Favoritos','Hunting guide':'Com guia',
+'Add to favorites':'Adicionar aos favoritos','Remove from favorites':'Remover dos favoritos','☆ Add to favorites':'☆ Adicionar aos favoritos','★ Remove favorite':'★ Remover dos favoritos',
+'No Pokémon match these filters':'Nenhum Pokémon corresponde a estes filtros','Try a shorter search or clear a filter.':'Experimenta uma pesquisa mais curta ou limpa um filtro.','Clear filters':'Limpar filtros',
+'Pick a Pokémon':'Escolhe um Pokémon','Normal form':'Forma normal','Shiny form':'Forma shiny','Replay shiny sparkle':'Ver o brilho outra vez','Form':'Forma',
+'Placeholder art. You can load your own images in Settings, under Artwork.':'Imagem provisória. Podes carregar as tuas imagens em Definições, na secção Imagens.',
+'No hunting guide yet.':'Ainda sem guia.','Choose game':'Escolher jogo',
+'With a hunting guide':'Com guia','Custom hunt':'Hunt personalizado','Custom hunt. The guide says it is always shiny here.':'Hunt personalizado. Segundo o guia, aqui é sempre shiny.','Custom hunt. The guide gift is shiny locked.':'Hunt personalizado. A oferta do guia é shiny locked.',
+'No guide yet, but the counter, odds and statistics work normally.':'Ainda sem guia, mas o contador, as odds e as estatísticas funcionam normalmente.',
+'From the guide':'Do guia','Other methods, no guide yet':'Outros métodos, ainda sem guia','Methods':'Métodos',
+'Your odds':'As tuas odds','Pick what applies to you. You can change this during the hunt.':'Escolhe o que se aplica a ti. Podes mudar isto durante o hunt.','Counter name':'Nome do contador',
+'Not in the guide yet':'Ainda não está no guia',
+'There is no guide entry for this hunt yet. The counter, odds and statistics work normally; guide data is added through data packs.':'Ainda não há guia para este hunt. O contador, as odds e as estatísticas funcionam normalmente.',
+'Where to hunt':'Onde fazer o hunt','Hunt this':'Fazer este hunt','Start a custom hunt':'Começar hunt personalizado','Forms':'Formas','No guide entries yet for this Pokémon.':'Ainda não há guias para este Pokémon.','Close':'Fechar',
+'Each game carries its own shiny rules. Odds are never assumed to be shared between games or methods.':'Cada jogo tem as suas próprias regras de shiny. As odds nunca são assumidas iguais entre jogos ou métodos.',
+'Shiny Pokémon did not exist yet in this generation.':'Nesta geração ainda não existiam Pokémon shiny.','No hunt data yet':'Ainda sem dados de hunt',
+'No screenshot yet':'Ainda sem screenshot','Add screenshot':'Adicionar screenshot','Replace screenshot':'Substituir screenshot','Found':'Encontrado','Time tracked':'Tempo registado','No shinies yet':'Ainda sem shinies',
+'When you press “I found it!” on a hunt, it is recorded here with the date and attempt count.':'Quando carregas em “Encontrei!” num hunt, o shiny fica registado aqui com a data e o número de tentativas.',
+'All hunts':'Todos os hunts','Total attempts':'Total de tentativas','Average per hour':'Média por hora','Shinies found':'Shinies encontrados','Average attempts per shiny':'Média de tentativas por shiny','Most used method':'Método mais usado',
+'Attempts over the last 14 days':'Tentativas nos últimos 14 dias','Attempts per hunt':'Tentativas por hunt','No hunts yet.':'Ainda sem hunts.',
+'General':'Geral','Profile name':'Nome do perfil','Language':'Idioma','Animations':'Animações','Counter bumps, milestones and the shiny celebration.':'Animação do contador, marcos e celebração do shiny.',
+'Sound effects':'Efeitos sonoros','Soft click, milestone and shiny sounds. All original.':'Clique suave, som de marcos e de shiny. Todos originais.',
+'Counter hotkeys':'Teclas do contador','Encounter +1':'Encontro +1','Egg +1':'Ovo +1','Undo (−1)':'Desfazer (−1)','Pause session':'Pausar sessão','Press a key…':'Carrega numa tecla…',
+'Global hotkeys':'Teclas globais','In the desktop app, hotkeys work while you play in another window. In the browser they work while this tab is focused.':'Na app para PC, as teclas funcionam enquanto jogas noutra janela. No browser, só funcionam com este separador ativo.',
+'Hotkeys work while you play in another window. Mouse buttons only work while this window is focused.':'As teclas funcionam enquanto jogas noutra janela. Os botões do rato só funcionam com esta janela ativa.',
+'Keep window on top':'Manter janela por cima','The app stays above your game or emulator. Pair it with compact mode.':'A app fica por cima do jogo ou do emulador. Combina bem com o modo compacto.',
+'Hotkeys apply to the hunt you opened last. Mouse 4 and 5 can be assigned by clicking them while waiting.':'As teclas contam no último hunt que abriste. Para usar os botões 4 e 5 do rato, carrega neles enquanto a app espera pela tecla.',
+'Appearance':'Aspeto','Theme':'Tema','Dark':'Escuro','Light':'Claro','UI scale':'Tamanho da interface','Compact mode':'Modo compacto','Tighter spacing for small windows.':'Menos espaço entre elementos, para janelas pequenas.',
+'Mini counter':'Mini contador','A small floating counter. In the desktop app it is its own always-on-top window.':'Um pequeno contador flutuante que podes arrastar.','Opacity':'Opacidade','Show Pokémon':'Mostrar Pokémon','Show odds':'Mostrar odds','Show timer':'Mostrar tempo','Position':'Posição','Reset position':'Repor posição','Close mini counter':'Fechar mini contador',
+'Artwork':'Imagens','Images loaded':'Imagens carregadas','Add a folder':'Adicionar uma pasta','Choose folder':'Escolher pasta','Add images or a .zip':'Adicionar imagens ou um .zip','Choose files':'Escolher ficheiros','Remove all artwork':'Remover todas as imagens','Remove':'Remover',
+'Use your own images on the Pokémon cards. You can pick a folder, image files or a .zip archive. Name each file by Pokédex number or name, for example 025.png or pikachu.png. For shiny versions, put them in a folder called shiny or add “shiny” to the file name. Images stay on this device.':'Usa as tuas imagens nos cartões dos Pokémon. Podes escolher uma pasta, ficheiros de imagem ou um .zip. Dá a cada ficheiro o número ou o nome do Pokémon, por exemplo 025.png ou pikachu.png. As versões shiny vão numa pasta chamada shiny ou com “shiny” no nome. As imagens ficam só neste computador.',
+'Data':'Dados','Export all hunts':'Exportar todos os hunts','Import hunts from JSON':'Importar hunts (JSON)','Import':'Importar','Autosave':'Gravação automática','Reset all data':'Apagar todos os dados','Deletes every hunt and setting on this device.':'Apaga todos os hunts e definições deste computador.','Reset data':'Apagar dados',
+'Export JSON':'Exportar JSON','Export CSV':'Exportar CSV','Copy':'Copiar','Copied':'Copiado','Copy this and keep it somewhere safe. The desktop app saves it straight to a file.':'Copia isto e guarda-o num sítio seguro.',
+'Import hunts':'Importar hunts','Paste a JSON export. It replaces the hunts and settings on this device.':'Cola aqui uma exportação JSON. Substitui os hunts e as definições deste computador.','Import and replace':'Importar e substituir',
+'Reset all data?':'Apagar todos os dados?','Every hunt, session, shiny record and setting on this device will be deleted. Export first if you want a backup.':'Todos os hunts, sessões, shinies registados e definições deste computador vão ser apagados. Exporta primeiro se quiseres uma cópia de segurança.','Delete everything':'Apagar tudo','All data deleted':'Todos os dados foram apagados',
+'Remove all artwork?':'Remover todas as imagens?','Your images are removed from this device. The cards go back to placeholder art.':'As tuas imagens são removidas deste computador. Os cartões voltam às imagens provisórias.','Remove artwork':'Remover imagens','Artwork removed':'Imagens removidas',
+'Reset the counter?':'Repor o contador?','Reset to 0':'Repor a 0','Delete this hunt?':'Apagar este hunt?','Delete hunt':'Apagar hunt','Record your shiny?':'Registar o teu shiny?','Record shiny':'Registar shiny','Chain broke?':'A chain quebrou?','Reset chain':'Repor chain','Save name':'Guardar nome',
+'Enter a name for the counter.':'Escreve um nome para o contador.','Shiny found!':'Shiny encontrado!','Shiny found':'Shiny encontrado','Open shiny history':'Abrir histórico de shinies',
+'Session started':'Sessão iniciada','Session paused':'Sessão em pausa','Session resumed':'Sessão retomada','Session saved':'Sessão guardada','Screenshot added':'Screenshot adicionada',
+'Open a hunt first.':'Abre primeiro um hunt.','This hunt is closed. Reopen it to keep counting.':'Este hunt está fechado. Reabre-o para continuares a contar.',
+'That file is not a valid export from this app. Check that you pasted the whole JSON.':'Este ficheiro não é uma exportação válida desta app. Confirma que colaste o JSON completo.',
+'No images found. Use PNG, JPG, WebP or GIF files.':'Não foram encontradas imagens. Usa ficheiros PNG, JPG, WebP ou GIF.',
+'Progress could not be saved: browser storage is full or blocked.':'Não foi possível guardar o progresso: o armazenamento está cheio ou bloqueado.',
+// guide data
+'A fishing rod.':'Uma cana de pesca.','Any fishing rod.':'Qualquer cana de pesca.','Any rod':'Qualquer cana','Good Rod or Super Rod':'Good Rod ou Super Rod','Old Rod is given nearby':'A Old Rod é oferecida ali perto',
+'Tall grass, uncommon':'Relva alta, pouco comum','Tall grass, rare':'Relva alta, raro','Needs Surf':'Precisa de Surf','Interior, rare':'Interior, raro','Overworld, rare':'No mapa, raro','Overworld and hidden in tall grass':'No mapa e escondido na relva alta',
+'Starter choice':'Escolha do inicial','Gift Pokémon':'Pokémon oferecido','Deepest floor':'Andar mais fundo','Deepest chamber':'Câmara mais funda','Summit':'Topo','Static encounter on the lake':'Encontro estático no lago',
+'Daily Pokémon, rotates':'Pokémon do dia, muda diariamente','Near Hulbury':'Perto de Hulbury','Eggs appear in the basket':'Os ovos aparecem no cesto','Anywhere in Paldea':'Em qualquer sítio de Paldea','Picnic':'Piquenique',
+'Location varies, check the map':'A localização varia, vê o mapa','Outbreak location varies':'A localização do outbreak varia','Active Eevee outbreak':'Outbreak de Eevee ativo','Hidden entrance under Cycling Road':'Entrada escondida por baixo da Cycling Road',
+'Most Kalos fishing spots':'A maioria dos sítios de pesca de Kalos','Great Crater':'Grande Cratera',
+'Start of the game.':'Início do jogo.','Early game for Viridian Forest.':'Início do jogo, na Viridian Forest.','National Pokédex and the Poké Radar.':'National Pokédex e o Poké Radar.','Story event, needs Surf.':'Evento da história, precisa de Surf.',
+'Talk to Bill after meeting him in Ecruteak City. Keep a free party slot.':'Fala com o Bill depois de o conheceres em Ecruteak City. Deixa um espaço livre na equipa.',
+'A parent from a different-language game, usually a Ditto.':'Um progenitor de um jogo noutra língua, normalmente um Ditto.','A parent from a different-language game.':'Um progenitor de um jogo noutra língua.',
+'A parent from a different-language game. An Egg Power sandwich speeds things up.':'Um progenitor de um jogo noutra língua. Uma sandes com Egg Power acelera o processo.',
+'An active Eevee outbreak.':'Um outbreak de Eevee ativo.','An active Eevee mass outbreak.':'Um mass outbreak de Eevee ativo.','Surf and a Good or Super Rod.':'Surf e uma Good Rod ou Super Rod.',
+'Post-game, after the Sevii Islands story.':'Pós-jogo, depois da história das Sevii Islands.','Post-game access to Mt. Silver.':'Acesso a Mt. Silver no pós-jogo.','Silver Wing and Tidal Bell.':'Silver Wing e Tidal Bell.','Clear Bell and Rainbow Wing.':'Clear Bell e Rainbow Wing.',
+'Available from the start.':'Disponível desde o início.','Post-game; the Mach Bike is needed to climb.':'Pós-jogo; precisas da Mach Bike para subir.','Find the hidden entrance below Cycling Road.':'Encontra a entrada escondida por baixo da Cycling Road.',
+'Wild Area access; strong Pokémon for the high levels.':'Acesso à Wild Area; Pokémon fortes por causa dos níveis altos.','A Dreepy and a parent from a different-language game.':'Um Dreepy e um progenitor de um jogo noutra língua.',
+'Your Sprigatito and a Ditto from a different-language game.':'O teu Sprigatito e um Ditto de um jogo noutra língua.','After the main story ends.':'Depois de terminares a história principal.',
+"Save in front of the Poké Balls, pick the starter and check its summary screen. If it isn't shiny, soft reset and try again.":'Grava em frente às Poké Balls, escolhe o inicial e vê o resumo dele. Se não for shiny, faz soft reset e tenta outra vez.',
+'Walk through tall grass and count every wild encounter, not only Pikachu: any of them can be shiny. Gen 3 has no Shiny Charm and no chaining.':'Anda pela relva alta e conta todos os encontros, não só os Pikachu: qualquer um pode ser shiny. A Geração 3 não tem Shiny Charm nem chaining.',
+'Use the Poké Radar in tall grass and only step into patches that shake like the previous one. Keep the chain going to 40; running from an encounter or walking into the wrong patch breaks it.':'Usa o Poké Radar na relva alta e entra só nos tufos que abanam como o anterior. Mantém a chain até 40; fugir de um encontro ou entrar no tufo errado quebra-a.',
+'Chain same-species patches with the Poké Radar. At chain 40 the odds reach their cap; shiny patches sparkle, so you can see a shiny before entering it.':'Encadeia tufos da mesma espécie com o Poké Radar. Na chain 40 as odds chegam ao máximo; os tufos shiny brilham, por isso vês o shiny antes de entrares.',
+'Fish and count every bite that turns into a battle. In Gen 2 shininess comes from the DVs, so a shiny Magikarp always has the same fixed stats.':'Pesca e conta cada picada que dá numa batalha. Na Geração 2 o shiny depende dos DVs, por isso um Magikarp shiny tem sempre os mesmos stats.',
+'Reel in the moment the "!" appears and run from each encounter. Missing a bite or leaving the spot breaks the chain. The bonus stops growing once the chain reaches 20.':'Puxa a cana assim que aparecer o "!" e foge de cada encontro. Falhar uma picada ou sair do sítio quebra a chain. O bónus deixa de crescer quando a chain chega a 20.',
+'The red Gyarados at the Lake of Rage is always shiny.':'O Gyarados vermelho do Lake of Rage é sempre shiny.',
+'Save before accepting Eevee, check its summary, and soft reset if it is normal.':'Grava antes de aceitares o Eevee, vê o resumo dele e faz soft reset se for normal.',
+'Walk through the tall grass and count every battle. Shiny Pokémon never appear as overworld symbols here, only in random "!" encounters.':'Anda pela relva alta e conta cada batalha. Aqui os shiny nunca aparecem no mapa, só nos encontros aleatórios com "!".',
+'Leave the foreign Ditto and an Eevee at the Nursery, collect eggs, and hatch them with a Flame Body or Magma Armor Pokémon in the party to halve hatch time.':'Deixa o Ditto estrangeiro e um Eevee na Nursery, recolhe os ovos e choca-os com um Pokémon com Flame Body ou Magma Armor na equipa, para chocarem em metade do tempo.',
+'Start a picnic with both parents in your party and collect from the basket. Hatch while riding with a Flame Body Pokémon in the party.':'Faz um piquenique com os dois progenitores na equipa e recolhe os ovos do cesto. Choca-os a andar de montada com um Pokémon com Flame Body na equipa.',
+'Defeat or catch 60 Pokémon from the outbreak to max the bonus. Then reset spawns by starting and ending a picnic, and check each new group.':'Derrota ou captura 60 Pokémon do outbreak para chegares ao bónus máximo. Depois faz reset aos spawns com um piquenique e verifica cada grupo novo.',
+'Clear the outbreak waves. Shiny Pokémon sparkle and play a sound in the overworld, so you can spot them without a battle.':'Limpa as vagas do outbreak. Os shiny brilham e fazem um som no mapa, por isso vês-os sem entrar em batalha.',
+"Fish in the Dragon’s Den water and count every bite that becomes a battle.":'Pesca na água do Dragon’s Den e conta cada picada que dá numa batalha.',
+'Save right in front of Mewtwo. The shiny check happens when the battle starts; reset if it is normal.':'Grava mesmo em frente ao Mewtwo. Vês se é shiny quando a batalha começa; faz reset se for normal.',
+'Walk the cave floors and count every wild encounter.':'Percorre os andares da gruta e conta todos os encontros.',
+'Breed a Larvitar with a foreign parent at the Route 34 Day Care, then hatch with a Flame Body Pokémon in the party.':'Cruza um Larvitar com um progenitor estrangeiro no Day Care da Route 34 e choca os ovos com um Pokémon com Flame Body na equipa.',
+'Save before talking to Lugia and reset if the battle opens without a shiny sparkle.':'Grava antes de falares com o Lugia e faz reset se a batalha começar sem o brilho de shiny.',
+'Save before climbing to the top of the Bell Tower and reset if Ho-Oh is normal.':'Grava antes de subires ao topo da Bell Tower e faz reset se o Ho-Oh for normal.',
+'Ralts is a rare spawn here, so count every encounter on the route.':'O Ralts é raro aqui, por isso conta todos os encontros na rota.',
+'Save on the summit before approaching Rayquaza and reset if it is normal.':'Grava no topo antes de te aproximares do Rayquaza e faz reset se for normal.',
+'Save before opening the briefcase. The starter is sent straight into a battle, so you see whether it is shiny right away.':'Grava antes de abrires a mala. O inicial entra logo numa batalha, por isso vês de imediato se é shiny.',
+'Gible only appears through the hidden entrance. Count every encounter in that section.':'O Gible só aparece depois da entrada escondida. Conta todos os encontros nessa zona.',
+'Breed a Gible with a foreign Ditto in Solaceon Town and hatch with a Flame Body Pokémon in the party.':'Cruza um Gible com um Ditto estrangeiro em Solaceon Town e choca os ovos com um Pokémon com Flame Body na equipa.',
+'Dreepy spawn depends on the Wild Area weather. Count each battle.':'O Dreepy aparece consoante o tempo na Wild Area. Conta cada batalha.',
+'Breed Dreepy with a foreign Ditto and hatch with a Flame Body Pokémon.':'Cruza o Dreepy com um Ditto estrangeiro e choca os ovos com um Pokémon com Flame Body.',
+'The starters you receive in Scarlet and Violet are shiny locked, so they can never be shiny.':'Os iniciais que recebes em Scarlet e Violet são shiny locked, por isso nunca podem ser shiny.',
+'Breed your starter with a foreign Ditto at a picnic. This is the way to get a shiny Sprigatito, since the gift itself is locked.':'Cruza o teu inicial com um Ditto estrangeiro num piquenique. É assim que consegues um Sprigatito shiny, porque o da oferta é locked.',
+'Great Tusk is exclusive to Scarlet. Count each encounter in Area Zero.':'O Great Tusk é exclusivo de Scarlet. Conta cada encontro na Area Zero.',
+// species blurbs
+'Kanto Grass starter.':'Inicial de tipo Grass de Kanto.','Kanto Fire starter.':'Inicial de tipo Fire de Kanto.','Kanto Water starter.':'Inicial de tipo Water de Kanto.','Paldea Grass starter.':'Inicial de tipo Grass de Paldea.',
+'Forest dweller, evolves from Pichu.':'Vive nas florestas e evolui de Pichu.','Bites on almost any rod, almost anywhere.':'Morde em quase todas as canas, em quase todo o lado.','Evolves from Magikarp at level 20.':'Evolui de Magikarp no nível 20.',
+'Branches into eight evolutions.':'Tem oito evoluções diferentes.','Rare Dragon type, usually fished.':'Tipo Dragon raro, normalmente pescado.','Post-game legendary in Kanto.':'Lendário do pós-jogo em Kanto.','Mythical, mostly event-only.':'Mítico, quase sempre só por evento.',
+'Start of a pseudo-legendary line.':'Início de uma linha pseudo-lendária.','Rare grass encounter in Hoenn.':'Encontro raro na relva em Hoenn.','Cave-dwelling pseudo-legendary line.':'Linha pseudo-lendária que vive em grutas.','Rare overworld spawn in Galar.':'Aparece raramente no mapa em Galar.',
+'Legendary.':'Lendário.','Mythical.':'Mítico.','Ultra Beast.':'Ultra Beast.','Paradox.':'Paradox.','English':'English','Português':'Português'
+};
+// counter labels are shown lowercase in some sentences
+['Encounters','Soft resets','Resets','Eggs hatched','Fishing encounters','Outbreak encounters'].forEach(k=>{PT[k.toLowerCase()]=PT[k].toLowerCase()});
+const PT_UNIT={encounter:['encontro','o próximo'],egg:['ovo','o próximo'],reset:['reset','o próximo'],bite:['picada','a próxima']};
+const N='([\\d\\s,.\\u00a0\\u202f]+)';
+const trl=s=>PT[s]||PT[s.toLowerCase()]||s;
+const PT_RULES=[
+ [/^(All|Active|Paused|Completed|Abandoned) \((\d+)\)$/,(m,a,b)=>({All:'Todos'}[a]||PT[a])+' ('+b+')'],
+ [new RegExp('^'+N+' shin(?:y|ies) recorded\\.$'),(m,n)=>n.trim()+(n.trim()==='1'?' shiny registado.':' shinies registados.')],
+ [new RegExp('^'+N+' species with hunt data$'),(m,n)=>n.trim()+(n.trim()==='1'?' espécie com guia':' espécies com guia')],
+ [new RegExp('^'+N+' Pokémon, (\\d+) guide entries$'),(m,n,g)=>n.trim()+' Pokémon, '+g+' entradas de guia'],
+ [new RegExp('^'+N+' Pokémon$'),(m,n)=>n.trim()+' Pokémon'],
+ [new RegExp('^'+N+' (.+?) with (.+)\\. (.+) tracked\\.$'),(m,n,l,me,d)=>n.trim()+' '+trl(l)+' com '+trl(me)+'. '+d+' registados.'],
+ [new RegExp('^After '+N+' (.+?) with (.+)\\.$'),(m,n,l,me)=>'Após '+n.trim()+' '+trl(l)+' com '+trl(me)+'.'],
+ [/^Base (1 \/ .+)$/,(m,o)=>'Base '+o],[/^Best odds (.+)$/,(m,o)=>'Melhores odds '+o],
+ [/^Chance of having seen at least one shiny by now\. It is not a countdown: the next (\w+) has the same odds as the first\. You are at$/,(m,u)=>{const x=PT_UNIT[u]||[u,'o próximo'];return 'Probabilidade de já teres visto pelo menos um shiny. Não é uma contagem decrescente: '+x[1]+' '+x[0]+' tem as mesmas odds que o primeiro. Já fizeste'}],
+ [/^Average (\w+) time$/,(m,u)=>'Tempo médio por '+((PT_UNIT[u]||[u])[0])],
+ [/^\+1 (\w+)$/,(m,u)=>'+1 '+((PT_UNIT[u]||[u])[0])],
+ [/^Counts (.+)$/,(m,l)=>'Conta '+trl(l)],
+ [/^Total (.+)$/,(m,l)=>'Total de '+trl(l)],
+ [new RegExp('^(.+) after '+N+' (.+)\\. The hunt is marked as completed\\.$'),(m,s,n,l)=>s+' após '+n.trim()+' '+trl(l)+'. O hunt fica marcado como concluído.'],
+ [new RegExp('^(.+) goes from '+N+' back to 0\\. Sessions and time stay\\.$'),(m,s,n)=>s+' passa de '+n.trim()+' para 0. As sessões e o tempo mantêm-se.'],
+ [new RegExp('^(.+) with '+N+' (.+) and all its sessions will be removed\\. This cannot be undone\\.$'),(m,s,n,l)=>'O hunt de '+s+', com '+n.trim()+' '+trl(l)+' e todas as sessões, vai ser apagado. Não é possível anular.'],
+ [new RegExp('^Your chain of '+N+' goes back to 0\\. Total (.+) stay the same\\.$'),(m,n,l)=>'A tua chain de '+n.trim()+' volta a 0. O total de '+trl(l)+' mantém-se.'],
+ [/^Generation (\d)$/,(m,g)=>'Geração '+g],[/^Gen (\d), (\w+)$/,(m,g,r)=>'Geração '+g+', '+r],
+ [/^No shinies in Generation (\d)$/,(m,g)=>'Sem shinies na Geração '+g],
+ [/^(.+) arrived in Generation (\d)$/,(m,s,g)=>s+' só aparece a partir da Geração '+g],
+ [/^Track it in any game from Generation (\d) onward\.$/,(m,g)=>'Podes fazer o hunt em qualquer jogo a partir da Geração '+g+'.'],
+ [/^How are you hunting (.+) in (.+)\?$/,(m,s,g)=>'Como vais fazer o hunt de '+s+' em '+g+'?'],
+ [/^Where are you hunting (.+)\?$/,(m,s)=>'Em que jogo vais fazer o hunt de '+s+'?'],
+ [/^Hunting guide for (\d+) games?\.$/,(m,n)=>'Com guia para '+n+(n==='1'?' jogo.':' jogos.')],
+ [/^You can track it in (\d+) games?\.$/,(m,n)=>'Podes fazer o hunt em '+n+(n==='1'?' jogo.':' jogos.')],
+ [/^Check that (.+) can be found in your game\.$/,(m,s)=>'Confirma que o '+s+' aparece no teu jogo.'],
+ [/^Check that (.+) can be found in (.+)\.$/,(m,s,g)=>'Confirma que o '+s+' aparece em '+g+'.'],
+ [/^Hunt started\. Press (.+) to count\.$/,(m,k)=>'Hunt iniciado. Carrega em '+k+' para contar.'],
+ [/^Open a hunt first, then press (.+) to count\.$/,(m,k)=>'Abre primeiro um hunt e depois carrega em '+k+' para contar.'],
+ [/^Last saved (\d+) seconds ago$/,(m,n)=>'Guardado há '+n+' segundos'],[/^Last saved (\d+) min ago$/,(m,n)=>'Guardado há '+n+' min'],
+ [/^Not possible \((\d+)\)$/,(m,n)=>'Não disponível ('+n+')'],[/^Other games \((\d+)\)$/,(m,n)=>'Outros jogos ('+n+')'],
+ [/^Session (\d+), (.+)$/,(m,n,d)=>'Sessão '+n+', '+d],[/^in (\d+h \d+m|\d+m)$/,(m,d)=>'em '+d],
+ [/^Shiny found on (.+)$/,(m,d)=>'Shiny encontrado a '+d],[/^Shiny hunt, #(\d+)$/,(m,n)=>'Shiny hunt, #'+n],
+ [/^Show more \((.+) left\)$/,(m,n)=>'Mostrar mais (faltam '+n+')'],
+ [/^(.+) in (Pokémon .+)$/,(m,s,g)=>s+' em '+g],
+ [/^(\S+) assigned$/,(m,k)=>k+' atribuída'],
+ [/^(.+) could not be used as a global hotkey\. Another program may already be using it\.$/,(m,k)=>'Não foi possível usar '+k+' como tecla global. Talvez outro programa já a esteja a usar.'],
+ [new RegExp('^Loading '+N+' images…$'),(m,n)=>'A carregar '+n.trim()+' imagens…'],
+ [new RegExp('^'+N+' images? added(?:, (\\d+) skipped because the name did not match a Pokémon)?$'),(m,n,k)=>n.trim()+(n.trim()==='1'?' imagem adicionada':' imagens adicionadas')+(k?', '+k+' ignoradas porque o nome não corresponde a nenhum Pokémon':'')],
+ [/^Imported (\d+) hunts$/,(m,n)=>n+' hunts importados'],
+ [/^Opening (.+)…$/,(m,f)=>'A abrir '+f+'…'],[/^Could not open (.+)\. Check that it is a valid \.zip file\.$/,(m,f)=>'Não foi possível abrir '+f+'. Confirma que é um ficheiro .zip válido.'],
+ [new RegExp('^'+N+' (.+)\\. Keep going!$'),(m,n,l)=>n.trim()+' '+trl(l)+'. Continua!'],
+ [/^Shiny hunt counter$/i,m=>m]
+];
+const LANG=()=>(S&&S.settings&&S.settings.lang)||'pt';
+const LOC=()=>LANG()==='pt'?'pt-PT':'en-US';
+function trParts(s,sep,joiner){const parts=s.split(sep);if(parts.length<2)return null;let hit=false;const out=parts.map(p=>{const r=trCore(p);if(r!==null){hit=true;return r}return p});return hit?out.join(joiner):null}
+function trExact(k){if(PT[k]!==undefined)return PT[k];for(const[re,f]of PT_RULES){const m=k.match(re);if(m)return f(...m)}return null}
+function trCore(k){let r=trExact(k);if(r!==null)return r;
+  if(/\.$/.test(k)&&!/\.\.$/.test(k)){r=trExact(k.slice(0,-1));if(r!==null)return r+'.'}
+  const i=k.indexOf(', ');if(i>0){const head=k.slice(0,i),tail=k.slice(i+2);const h=trExact(head),t=trCore(tail);if(h!==null||t!==null)return (h??head)+', '+(t??tail)}
+  return null}
+function tr(str){if(LANG()!=='pt'||typeof str!=='string')return str;const k=str.trim();if(!k||!/[A-Za-z]/.test(k))return str;
+  let out=trCore(k);
+  if(out===null&&/[.!?]\s+\S/.test(k))out=trParts(k,/(?<=[.!?])\s+/,' ');
+  return out===null?str:str.replace(k,out)}
+const TR_ATTRS=['placeholder','aria-label','title','data-tip'];
+function translateNode(n){if(LANG()!=='pt')return;
+  if(n.nodeType===3){const p=n.parentElement;if(!p||p.closest('script,style,textarea,[data-notr]'))return;const t=tr(n.nodeValue);if(t!==n.nodeValue)n.nodeValue=t;return}
+  if(n.nodeType!==1||n.closest('script,style,textarea,[data-notr]'))return;
+  const els=[n,...n.querySelectorAll('*')];
+  for(const el of els){for(const a of TR_ATTRS){const v=el.getAttribute&&el.getAttribute(a);if(v){const t=tr(v);if(t!==v)el.setAttribute(a,t)}}
+    if(el.tagName==='SCRIPT'||el.tagName==='STYLE'||el.tagName==='TEXTAREA')continue;
+    for(const c of el.childNodes)if(c.nodeType===3){const t=tr(c.nodeValue);if(t!==c.nodeValue)c.nodeValue=t}}}
+new MutationObserver(ms=>{if(LANG()!=='pt')return;for(const m of ms)for(const n of m.addedNodes)translateNode(n)}).observe(document.body,{childList:true,subtree:true});
+
+/* ========================= lookups & helpers ========================= */
+const SP=Object.fromEntries(SPECIES.map(s=>[s.dex,s]));
+const GM=Object.fromEntries(GAMES.map(g=>[g.id,g]));
+const GENERIC_METHODS=['random','softreset','fishing','masuda'];
+function genericEntry(sp,gid,method){const g=GM[gid];
+  const odds=method==='masuda'?[['Masuda',g.masuda[0],gid==='black'||gid==='white'||g.gen===4]].concat(g.masuda[1]?[['Masuda with Shiny Charm',g.masuda[1]]]:[])
+    :[['Base',g.baseOdds]].concat(g.charm?[['Shiny Charm',g.charm,g.charm===2731]]:[]);
+  return{id:'g:'+sp+':'+gid+':'+method,sp,game:gid,method,generic:true,time:'any',weather:'any',locs:[{name:'Not in the guide yet',area:g.region,detail:''}],
+    req:'Check that '+SP[sp].name+' can be found in '+g.name+'.',odds,how:'There is no guide entry for this hunt yet. The counter, odds and statistics work normally; guide data is added through data packs.'}}
+function entryById(id){if(id&&id.startsWith('g:')){const[,sp,g,m]=id.split(':');return SP[+sp]&&GM[g]&&GM[g].baseOdds&&METHODS[m]&&(m!=='masuda'||GM[g].masuda)?genericEntry(+sp,g,m):null}return AV.find(a=>a.id===id)}
+function gameOptions(sp){const s=SP[sp];return GAMES.map(g=>{const es=avFor(sp,g.id),ok=es.filter(huntable);
+  const why=!g.baseOdds?'No shinies in Generation '+g.gen:g.gen<s.gen?s.name+' arrived in Generation '+s.gen:'';
+  return{g,es,ok,why,guide:!why&&ok.length>0,custom:!why&&!ok.length}})}
+function methodOptions(sp,gid){const g=GM[gid],s=SP[sp],es=avFor(sp,gid);if(!g.baseOdds||g.gen<s.gen)return{guide:es,custom:[]};
+  const guided=new Set(es.filter(huntable).map(e=>e.method));
+  return{guide:es,custom:GENERIC_METHODS.filter(m=>!guided.has(m)&&(m!=='masuda'||g.masuda)).map(m=>genericEntry(sp,gid,m))}}
+const allMethods=(sp,gid)=>{const r=methodOptions(sp,gid);return[...r.guide.filter(huntable),...r.custom]};
+const avFor=(sp,game)=>AV.filter(a=>a.sp===sp&&(!game||a.game===game));
+const huntable=e=>!e.locked&&!e.guaranteed;
+const $=(s,r=document)=>r.querySelector(s);
+const $$=(s,r=document)=>[...r.querySelectorAll(s)];
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const fmt=n=>{try{return Number(n).toLocaleString(LOC(),{useGrouping:'always'})}catch(e){return Number(n).toLocaleString(LOC())}};
+const dec=(n,d)=>Number(n).toLocaleString(LOC(),{minimumFractionDigits:d,maximumFractionDigits:d});
+const pad=n=>String(n).padStart(2,'0');
+const dex3=n=>String(n).padStart(3,'0');
+const hms=ms=>{const s=Math.floor(ms/1000);return pad(Math.floor(s/3600))+':'+pad(Math.floor(s%3600/60))+':'+pad(s%60)};
+const shortDur=ms=>{const m=Math.round(ms/60000);return m<60?m+'m':Math.floor(m/60)+'h '+(m%60)+'m'};
+const dateStr=t=>new Date(t).toLocaleDateString(LOC(),{month:'long',day:'numeric',year:'numeric'});
+const uid=()=>Math.random().toString(36).slice(2,10);
+const oddsTxt=o=>o[1]===1?'Always shiny':o[1]===0?'Shiny locked':(o[2]?'≈ ':'')+'1 / '+fmt(o[1]);
+const cumProb=(n,d)=>d<=1?1:1-Math.pow(1-1/d,n);
+const pct=p=>dec(p*100,1)+'%';
+
+let ART={};
+function orb(sp,{shiny=false,size=64}={}){
+  const s=SP[sp],sparks=shiny?'<i class="spk a"></i><i class="spk b"></i><i class="spk c"></i>':'',a=ART[sp+(shiny?'s':'')];
+  if(a)return `<div class="art ${shiny?'shiny':''}" style="--s:${size}px" aria-hidden="true"><img src="${a}" alt="" loading="lazy" decoding="async">${sparks}</div>`;
+  const c1=TYPES[s.types[0]],c2=TYPES[s.types[1]||s.types[0]];
+  return `<div class="orb ${shiny?'shiny':''}" style="--s:${size}px;--c1:${c1};--c2:${c2}" aria-hidden="true"><span>${dex3(s.dex)}</span>${sparks}</div>`;
+}
+const formOf=(sp,i)=>{const f=SP[sp].forms;return f.length?f[Math.min(i||0,f.length-1)]:null};
+const typePills=s=>s.types.map(t=>`<span class="type" style="--tc:${TYPES[t]}">${t[0].toUpperCase()+t.slice(1)}</span>`).join(' ');
+
+/* ========================= state & save system ========================= */
+const KEY='shc.proto.v1';
+let S=null,dirty=false,lastSaved=Date.now();
+function defaultSettings(){return{theme:'dark',anim:true,sound:true,compact:false,scale:100,globalHotkeys:true,onTop:false,lang:'pt',
+  keys:{inc:'F8',egg:'F9',undo:'F7',pause:'F6'},
+  overlay:{on:false,opacity:96,showSpecies:true,showOdds:true,showTimer:true,x:null,y:null},profile:'Local save'}}
+function mkHunt(entryId,loc=0,odds=0,label){const e=entryById(entryId),m=METHODS[e.method];const now=Date.now();
+  return{id:uid(),entry:e.id,sp:e.sp,game:e.game,method:e.method,loc,odds,label:label||m.counter,count:0,chain:0,best:0,status:'active',
+    createdAt:now,updatedAt:now,sessions:[],session:null,foundAt:null,shot:null}}
+function seedSessions(counts,avgSec,startDaysAgo){const now=Date.now();
+  return counts.map((c,i)=>{const start=now-(startDaysAgo-i*2)*864e5;const ms=Math.round(c*avgSec*1000*(0.88+((i*37)%25)/100));return{start,end:start+ms,activeMs:ms,count:c}})}
+function seed(){return{version:1,settings:defaultSettings(),hunts:[],favorites:[],current:null}}
+function seedDemo(){
+  const H=(entry,count,status,sess,extra={})=>Object.assign(mkHunt(entry,0,extra.odds||0),{count,status,sessions:sess,createdAt:sess[0]?.start||Date.now()},extra);
+  const h1=H('133-sword-random',3829,'active',seedSessions([612,845,730,902,740],15,12),{odds:1});
+  const h2=H('384-emerald-softreset',1502,'paused',seedSessions([410,388,356,348],41,20));
+  const h3=H('133-scarlet-masuda',421,'active',seedSessions([150,141,130],52,6),{odds:1});
+  const h4=H('147-gold-fishing',5210,'completed',seedSessions([900,1100,1250,960,1000],18,40),{foundAt:Date.now()-14*864e5});
+  const h5=H('280-emerald-random',1847,'completed',seedSessions([520,610,717],14,8),{foundAt:Date.now()-1*864e5});
+  return{version:1,settings:defaultSettings(),hunts:[h1,h3,h2,h5,h4],favorites:[133,384,443],current:h1.id};
+}
+function load(){try{const raw=localStorage.getItem(KEY);if(raw){const d=JSON.parse(raw);if(d&&Array.isArray(d.hunts)){d.settings={...defaultSettings(),...d.settings,keys:{...defaultSettings().keys,...(d.settings||{}).keys},overlay:{...defaultSettings().overlay,...(d.settings||{}).overlay}};S=d}}}catch(e){}
+  if(!S)S=seed();}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(S));lastSaved=Date.now();dirty=false}catch(e){toast('Progress could not be saved: browser storage is full or blocked.','danger')}}
+function touch(){dirty=true;clearTimeout(touch.t);touch.t=setTimeout(save,250)}
+setInterval(()=>{if(dirty)save()},10000);
+addEventListener('beforeunload',()=>{const h=cur();save()});
+document.addEventListener('visibilitychange',()=>{if(document.hidden)save()});
+
+const huntById=id=>S.hunts.find(h=>h.id===id);
+const cur=()=>huntById(S.current);
+const entryOf=h=>entryById(h.entry);
+const oddsOf=h=>{const o=entryOf(h).odds;return o[Math.min(h.odds,o.length-1)]};
+const sessMs=h=>h.session?h.session.activeMs+(h.session.runFrom?Date.now()-h.session.runFrom:0):0;
+const totalMs=h=>h.sessions.reduce((a,s)=>a+s.activeMs,0)+sessMs(h);
+const isClosed=h=>h.status==='completed'||h.status==='abandoned';
+
+/* ========================= counter system ========================= */
+function startSession(h){h.session={start:Date.now(),activeMs:0,runFrom:Date.now(),count:0}}
+function pauseSession(h){if(h.session&&h.session.runFrom){h.session.activeMs+=Date.now()-h.session.runFrom;h.session.runFrom=null}}
+function resumeSession(h){if(h.session&&!h.session.runFrom)h.session.runFrom=Date.now()}
+function endSession(h){if(!h.session)return;pauseSession(h);const s=h.session;h.session=null;
+  if(s.count>0||s.activeMs>5000)h.sessions.push({start:s.start,end:Date.now(),activeMs:s.activeMs,count:s.count})}
+function inc(h,n){
+  if(!h||isClosed(h))return;
+  let rer=false;if(n>0){if(!h.session){startSession(h);rer=true}else if(!h.session.runFrom){resumeSession(h);rer=true}if(h.status==='paused'){h.status='active';rer=true}}
+  const before=h.count;h.count=Math.max(0,h.count+n);const d=h.count-before;if(!d)return;
+  if(h.session)h.session.count=Math.max(0,h.session.count+d);
+  if(METHODS[h.method].kind==='chain'){h.chain=Math.max(0,h.chain+d);h.best=Math.max(h.best,h.chain)}
+  h.updatedAt=Date.now();
+  feedback(d);
+  MILESTONES.forEach(m=>{if(before<m&&h.count>=m)milestone(m,h)});
+  touch();if(rer&&view.name==='hunt'){render();feedback(0)}else refresh();
+}
+function togglePause(h){if(!h||isClosed(h))return;if(!h.session){startSession(h);toast('Session started')}
+  else if(h.session.runFrom){pauseSession(h);toast('Session paused')}else{resumeSession(h);toast('Session resumed')}
+  touch();if(view.name==='hunt')render();else refresh()}
+
+/* ========================= feedback, sound, toasts ========================= */
+let AC;
+function tone(freqs,dur=.05,type='sine',gap=.07,vol=.07){if(!S.settings.sound)return;try{AC=AC||new(window.AudioContext||window.webkitAudioContext)();
+  freqs.forEach((f,i)=>{const o=AC.createOscillator(),g=AC.createGain();o.type=type;o.frequency.value=f;const t=AC.currentTime+i*gap;
+  g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(vol,t+.006);g.gain.exponentialRampToValueAtTime(.0001,t+dur);o.connect(g).connect(AC.destination);o.start(t);o.stop(t+dur+.03)})}catch(e){}}
+function feedback(d){
+  if(d)tone(d>0?[1500]:[700],.045,'triangle',0,.05);
+  if(!S.settings.anim)return;
+  $$('[data-b="count"]').forEach(el=>{el.classList.remove('bump');void el.offsetWidth;el.classList.add('bump')});
+  $$('.inc').forEach(b=>{b.classList.add('press');setTimeout(()=>b.classList.remove('press'),90)});
+  const scr=$('.screen');if(scr&&d>0){const f=document.createElement('span');f.className='float';f.textContent='+'+fmt(d);
+    f.style.left=(40+Math.random()*40)+'%';f.style.top='70px';scr.appendChild(f);setTimeout(()=>f.remove(),820)}
+}
+function toast(msg,kind=''){const t=document.createElement('div');t.className='toast '+kind;t.textContent=msg;$('#toasts').appendChild(t);setTimeout(()=>t.remove(),kind==='ms'?3200:2200)}
+function milestone(m,h){tone([660,880,1320],.2,'triangle',.09,.07);toast(fmt(m)+' '+h.label.toLowerCase()+'. Keep going!','ms')}
+
+function celebrate(h){
+  tone([988,1319,1568,1976,2637],.4,'sine',.09,.07);
+  const s=SP[h.sp],g=GM[h.game];
+  const el=document.createElement('div');el.className='celebrate';el.setAttribute('role','dialog');el.setAttribute('aria-label','Shiny found');
+  let parts='';if(S.settings.anim){const cols=['#F4C24E','#FFE9A8','#7FE3C4','#B79CFF','#ffffff'];
+    for(let i=0;i<56;i++){const a=Math.random()*Math.PI*2,r=180+Math.random()*420;parts+=`<i class="pt" style="--dx:${Math.cos(a)*r}px;--dy:${Math.sin(a)*r}px;background:${cols[i%5]};width:${6+Math.random()*12}px;height:${6+Math.random()*12}px;animation-delay:${Math.random()*.25}s"></i>`}}
+  el.innerHTML=parts+`<div class="card">${orb(h.sp,{shiny:true,size:150})}<h1>Shiny found!</h1>
+    <p style="font:600 20px var(--display)">${esc(s.name)} in ${esc(g.name)}</p>
+    <p class="muted" style="color:#C9CEEA">${fmt(h.count)} ${esc(h.label.toLowerCase())} with ${METHODS[h.method].name}. ${shortDur(totalMs(h))} tracked.</p>
+    <div class="row" style="justify-content:center;margin-top:10px"><button class="btn gold" data-a="go" data-v="history">Open shiny history</button><button class="btn" data-a="cel-close">Close</button></div></div>`;
+  document.body.appendChild(el);el.querySelector('[data-a="cel-close"]').focus();
+}
+
+/* ========================= modal ========================= */
+function modal(title,body,actions,wide){closeModal();
+  const sc=document.createElement('div');sc.className='scrim';sc.id='scrim';
+  sc.innerHTML=`<div class="modal ${wide?'wide':''}" role="dialog" aria-modal="true" aria-label="${esc(title)}"><h2>${esc(title)}</h2><div>${body}</div><div class="acts"></div></div>`;
+  const acts=sc.querySelector('.acts');
+  actions.forEach(a=>{const b=document.createElement('button');b.className='btn '+(a.cls||'');b.textContent=a.label;b.onclick=()=>{if(a.fn&&a.fn()===false)return;closeModal()};acts.appendChild(b)});
+  sc.addEventListener('mousedown',e=>{if(e.target===sc)closeModal()});
+  document.body.appendChild(sc);(sc.querySelector('input,textarea')||acts.lastChild).focus();
+}
+function closeModal(){$('#scrim')?.remove()}
+function confirmDo(title,text,label,fn,cls='primary'){modal(title,`<p class="muted">${text}</p>`,[{label:'Cancel'},{label,cls,fn}])}
+
+/* ========================= routing & rendering ========================= */
+let view={name:'home'};
+const wiz={step:1,sp:null,game:null,entry:null,loc:0,odds:0,label:'',form:0,shinyPreview:false};
+const wf={q:'',gen:'',type:'',stage:'',tags:[],data:false,fav:false,game:'',method:''};
+const df={q:'',gen:'',type:'',stage:'',tags:[],data:false,fav:false,game:'',method:''};
+const quick={sp:'',game:'',entry:''};
+let huntFilter='all';
+
+function go(name,arg){view={name,arg};if(name==='hunt'&&arg){S.current=arg;touch()}render();scrollTo({top:0})}
+function applySettings(){const st=S.settings;document.documentElement.dataset.theme=st.theme;document.documentElement.lang=LANG()==='pt'?'pt-PT':'en';
+  document.body.classList.toggle('noanim',!st.anim);document.body.classList.toggle('compact',st.compact);
+  document.body.style.zoom=st.scale===100?'':st.scale/100}
+
+function render(){applySettings();renderTop();
+  const f={home:vHome,hunts:vHunts,hunt:vHunt,new:vWizard,dex:vDex,games:vGames,history:vHistory,stats:vStats,settings:vSettings}[view.name]||vHome;
+  $('#main').innerHTML=f();renderMini();refresh();watchMore();
+  if(view.name==='new'&&wiz.step===1)$('#q')?.focus({preventScroll:true});
+}
+const NAV=[['home','Home'],['hunts','My hunts'],['dex','Database'],['games','Games'],['history','History'],['stats','Statistics'],['settings','Settings']];
+function renderTop(){
+  const enc=S.hunts.reduce((a,h)=>a+h.count,0),shinies=S.hunts.filter(h=>h.status==='completed').length;
+  const on=view.name==='hunt'||view.name==='new'?'hunts':view.name;
+  $('#top').innerHTML=`<button class="brand" data-a="go" data-v="home" aria-label="Home">
+    <svg width="30" height="30" viewBox="0 0 32 32" aria-hidden="true"><defs><linearGradient id="lg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#F4C24E"/><stop offset=".55" stop-color="#7FE3C4"/><stop offset="1" stop-color="#B79CFF"/></linearGradient></defs>
+    <rect x="2" y="2" width="28" height="28" rx="9" fill="#1C2340"/><path d="M16 5l2.6 8.4L27 16l-8.4 2.6L16 27l-2.6-8.4L5 16l8.4-2.6z" fill="url(#lg)"/></svg>
+    Shiny Hunt Counter</button>
+  <nav class="main" aria-label="Main">${NAV.map(([k,l])=>`<button data-a="go" data-v="${k}" class="${on===k?'on':''}" ${on===k?'aria-current="page"':''}>${l}</button>`).join('')}</nav>
+  <div class="totals">
+    <div class="tot hide-sm"><b>${fmt(S.hunts.length)}</b><span>Hunts</span></div>
+    <div class="tot"><b>${fmt(enc)}</b><span>Encounters</span></div>
+    <div class="tot"><b>${fmt(shinies)}</b><span>Shinies</span></div>
+    <div class="profile"><i></i><span><span>${esc(S.settings.profile)}</span><br><span class="saved" data-b="saved"></span></span></div>
+  </div>`;
+}
+
+/* ---------- home ---------- */
+function huntRow(h){const s=SP[h.sp],g=GM[h.game],m=METHODS[h.method];
+  return `<button class="hrow" data-a="open" data-v="${h.id}">${orb(h.sp,{shiny:h.status==='completed',size:52})}
+  <span><b style="font:700 17px var(--display)">${esc(s.name)}</b>${h.form?` <span class="muted small">${esc(h.form)}</span>`:''}<br><span class="muted small">${esc(g.name)}, ${m.name}</span></span>
+  <span class="pill ${h.status}">${cap(h.status)}</span>
+  <span class="n">${fmt(h.count)}<small>${esc(h.label.toLowerCase())}</small></span></button>`}
+const cap=s=>s[0].toUpperCase()+s.slice(1);
+function vHome(){
+  const h=cur();const active=S.hunts.filter(x=>!isClosed(x));const recent=S.hunts.filter(x=>x.status==='completed').sort((a,b)=>b.foundAt-a.foundAt).slice(0,3);
+  const cont=h&&!isClosed(h)?`<div class="panel continue">${orb(h.sp,{size:88})}
+     <div><p class="muted small">Continue hunting</p><h2 style="font-size:28px">${esc(SP[h.sp].name)}</h2><p class="muted small">${esc(GM[h.game].name)}, ${METHODS[h.method].name}</p>
+     <p class="big" data-b="count" style="margin-top:10px">${fmt(h.count)}</p><p class="muted small" data-b="label">${esc(h.label)}</p></div>
+     <div class="cta stack"><button class="btn primary" data-a="inc" data-v="1">+1 <span class="kbd">${keyLabel(S.settings.keys.inc)}</span></button><button class="btn" data-a="open" data-v="${h.id}">Open hunt</button></div></div>`
+    :`<div class="panel empty" style="border-style:solid"><h3>No hunt in progress</h3><p>Start one and it will wait for you here.</p></div>`;
+  const spOpts=SPECIES;
+  const gOpts=quick.sp?gameOptions(+quick.sp).filter(o=>!o.why):[];
+  const mOpts=quick.sp&&quick.game?allMethods(+quick.sp,quick.game):[];
+  return `<div class="home-top">
+    <button class="newhunt" data-a="newhunt"><span class="plus">+</span><span><b>New hunt</b><br><span style="opacity:.8;font-weight:600">Pick a Pokémon, a game and a method.</span></span></button>
+    ${cont}</div>
+  <div class="panel" style="margin-top:18px"><div class="row between" style="margin-bottom:12px"><h3>Quick hunt</h3><span class="muted small">Skips the guide and starts counting.</span></div>
+   <div class="quick">
+    <label class="f">Pokémon<select data-c="qsp"><option value="">Choose…</option>${spOpts.map(s=>`<option value="${s.dex}" ${+quick.sp===s.dex?'selected':''}>#${dex3(s.dex)} ${esc(s.name)}</option>`).join('')}</select></label>
+    <label class="f">Game<select data-c="qgame" ${gOpts.length?'':'disabled'}><option value="">Choose…</option>${gOpts.map(o=>`<option value="${o.g.id}" ${quick.game===o.g.id?'selected':''}>${esc(o.g.name)}${o.guide?' (guide)':''}</option>`).join('')}</select></label>
+    <label class="f">Method<select data-c="qentry" ${mOpts.length?'':'disabled'}><option value="">Choose…</option>${mOpts.map(e=>`<option value="${e.id}" ${quick.entry===e.id?'selected':''}>${METHODS[e.method].name}${e.generic?' (custom)':''}</option>`).join('')}</select></label>
+    <button class="btn primary" data-a="quick-start" ${quick.entry?'':'disabled'}>Start hunt</button></div></div>
+  <div class="section-h"><h2>Active hunts</h2><button class="btn ghost sm" data-a="go" data-v="hunts">All hunts</button></div>
+  ${active.length?`<div class="list">${active.map(huntRow).join('')}</div>`:`<div class="empty"><h3>No active hunts</h3><p>Your hunts appear here while you work on them.</p><button class="btn primary" data-a="newhunt">Start a hunt</button></div>`}
+  <div class="section-h"><h2>Recent shinies</h2><button class="btn ghost sm" data-a="go" data-v="history">Shiny history</button></div>
+  ${recent.length?`<div class="list">${recent.map(huntRow).join('')}</div>`:`<div class="empty"><p>Shinies you record will show up here.</p></div>`}`;
+}
+
+/* ---------- hunts list ---------- */
+function vHunts(){
+  const list=S.hunts.filter(h=>huntFilter==='all'||h.status===huntFilter);
+  return `<div class="row between"><h1 style="font-size:34px">My hunts</h1><button class="btn primary" data-a="newhunt">+ New hunt</button></div>
+  <div class="tagrow" style="margin-top:16px">${['all','active','paused','completed','abandoned'].map(k=>`<button class="tog" data-a="hfilter" data-v="${k}" aria-pressed="${huntFilter===k}">${cap(k)} (${k==='all'?S.hunts.length:S.hunts.filter(h=>h.status===k).length})</button>`).join('')}</div>
+  ${list.length?`<div class="list">${list.map(huntRow).join('')}</div>`:`<div class="empty"><h3>Nothing here</h3><p>No hunts with this status.</p><button class="btn primary" data-a="newhunt">Start a hunt</button></div>`}`;
+}
+
+/* ---------- hunt dashboard ---------- */
+function vHunt(){
+  const h=huntById(view.arg);if(!h)return `<div class="empty"><h3>This hunt no longer exists</h3><button class="btn" data-a="go" data-v="hunts">Back to my hunts</button></div>`;
+  const s=SP[h.sp],g=GM[h.game],m=METHODS[h.method],e=entryOf(h),loc=e.locs[Math.min(h.loc,e.locs.length-1)];
+  const closed=isClosed(h),K=S.settings.keys,chain=m.kind==='chain';
+  const sess=h.session,running=sess&&sess.runFrom;
+  const sessions=h.sessions.slice(-8);
+  return `<div class="row between" style="margin-bottom:16px"><button class="btn ghost sm" data-a="go" data-v="hunts">‹ My hunts</button>
+    <div class="row"><button class="btn sm" data-a="mini">${S.settings.overlay.on?'Hide':'Show'} mini counter</button>
+    <select data-c="hstatus" aria-label="Hunt status" style="width:auto">${['active','paused','abandoned'].map(k=>`<option value="${k}" ${h.status===k?'selected':''}>${cap(k)}</option>`).join('')}${h.status==='completed'?'<option selected>Completed</option>':''}</select>
+    <button class="btn sm danger" data-a="delhunt">Delete</button></div></div>
+  <div class="hunt"><div>
+   <div class="hhead">${orb(h.sp,{shiny:true,size:84})}<div><p class="muted small">Shiny hunt, #${dex3(s.dex)}</p><h1>${esc(s.name)}</h1>
+     <div class="chips">${h.form?`<span class="pill">${esc(h.form)}</span>`:''}<span class="pill">${esc(g.name)}</span><span class="pill">${m.name}</span><span class="pill">${esc(loc.name)}</span><span class="pill ${h.status}">${cap(h.status)}</span></div></div></div>
+   <div class="screen">
+     <div class="row between"><span class="lbl" data-b="label">${esc(h.label)}</span><button class="btn sm ghost" style="color:var(--screen-muted)" data-a="rename">Rename counter</button></div>
+     <div class="count" data-b="count" aria-live="polite">${fmt(h.count)}</div>
+     ${chain?`<div class="chainrow"><div><b data-b="chain">${fmt(h.chain)}</b><span>Current chain</span></div><div><b data-b="best">${fmt(h.best)}</b><span>Highest chain</span></div><button class="btn sm" style="background:rgba(255,255,255,.08);color:var(--screen-ink);border-color:rgba(255,255,255,.12)" data-a="breakchain" ${closed?'disabled':''}>Chain broke</button></div>`:''}
+     <button class="inc" data-a="inc" data-v="1" ${closed?'disabled':''}>+1 ${esc(m.unit)} <span class="kbd">${keyLabel(K.inc)}</span></button>
+     <div class="subbtns"><button class="btn" data-a="inc" data-v="10" ${closed?'disabled':''}>+10</button><button class="btn" data-a="inc" data-v="100" ${closed?'disabled':''}>+100</button><button class="btn" data-a="inc" data-v="-1" ${closed?'disabled':''}>−1 <span class="kbd">${keyLabel(K.undo)}</span></button><button class="btn danger" data-a="reset" ${closed?'disabled':''}>Reset</button></div>
+   </div>
+   <div class="panel sessbar" style="margin-top:14px">
+     <div class="clock"><span data-b="sess">${hms(sessMs(h))}</span><small>${sess?(running?'Session running':'Session paused'):'No session running'}. Total <span data-b="total">${hms(totalMs(h))}</span></small></div>
+     ${closed?'':!sess?`<button class="btn" data-a="sess-start">Start session</button>`:`<button class="btn" data-a="sess-pause">${running?'Pause':'Resume'} <span class="kbd">${keyLabel(K.pause)}</span></button><button class="btn" data-a="sess-end">End session</button>`}
+     ${h.status==='completed'?`<button class="btn" data-a="reopen">Reopen hunt</button>`:closed?'':`<button class="btn gold" data-a="found">I found it!</button>`}
+   </div>
+   ${h.status==='completed'?`<div class="panel" style="margin-top:14px;background:color-mix(in srgb,var(--gold) 10%,var(--panel))"><h3>Shiny found on ${dateStr(h.foundAt)}</h3><p class="muted small">After ${fmt(h.count)} ${esc(h.label.toLowerCase())} with ${m.name}.</p></div>`:''}
+  </div>
+  <div class="stack">
+   <div class="panel"><div class="row between"><h3>Shiny odds</h3>${e.odds.length>1?`<select data-c="hodds" aria-label="Odds modifier" style="width:auto;max-width:60%">${e.odds.map((o,i)=>`<option value="${i}" ${h.odds===i?'selected':''}>${esc(o[0])}</option>`).join('')}</select>`:`<span class="muted small">${esc(e.odds[0][0])}</span>`}</div>
+     <p class="odds-big" style="margin-top:10px">${oddsTxt(oddsOf(h))}</p>
+     ${chain?`<p class="muted small" style="margin-top:6px">Chain odds change as the chain grows. Pick the row that matches your current chain.</p>`:''}
+     <div style="margin-top:18px;padding-top:16px;border-top:1px solid var(--line)"><div class="row between"><h3>Your hunt</h3><button class="tip" aria-label="About this number" data-tip="Shiny odds are independent for each eligible encounter. This value represents the cumulative probability of finding at least one Shiny after the recorded number of attempts.">?</button></div>
+     <p class="prob" style="margin-top:10px" data-b="prob"></p><div class="bar"><i data-b="probbar" style="width:0"></i></div>
+     <p class="muted small">Chance of having seen at least one shiny by now. It is not a countdown: the next ${esc(m.unit)} has the same odds as the first. You are at <b data-b="oddsx"></b> the odds.</p></div></div>
+   <div class="panel"><h3>Statistics</h3><dl class="kv" style="margin-top:12px">
+     <dt>Total ${esc(h.label.toLowerCase())}</dt><dd data-b="count">${fmt(h.count)}</dd>
+     <dt>This session</dt><dd data-b="sesscount">${fmt(sess?sess.count:0)}</dd>
+     <dt>Average ${esc(m.unit)} time</dt><dd data-b="avg"></dd>
+     <dt>Per hour</dt><dd data-b="rate"></dd>
+     <dt>Time played</dt><dd data-b="total">${hms(totalMs(h))}</dd>
+     <dt>Longest session</dt><dd>${h.sessions.length?shortDur(Math.max(...h.sessions.map(x=>x.activeMs))):'None yet'}</dd>
+     <dt>Sessions</dt><dd>${h.sessions.length+(sess?1:0)}</dd>
+     ${chain?`<dt>Highest chain</dt><dd data-b="best">${fmt(h.best)}</dd>`:''}</dl></div>
+   <div class="panel info"><h3>How to hunt</h3>
+     ${e.locs.length>1?`<label class="f" style="margin-top:12px">Location<select data-c="hloc">${e.locs.map((l,i)=>`<option value="${i}" ${h.loc===i?'selected':''}>${esc(l.name)}</option>`).join('')}</select></label>`:''}
+     <dl><dt>Method</dt><dd>${m.name}</dd><dt>Location</dt><dd>${esc(loc.area)}, ${esc(loc.name)}${loc.detail?`<br><span class="muted small">${esc(loc.detail)}</span>`:''}</dd>
+     <dt>Time</dt><dd>${TIME_LBL[e.time]}</dd><dt>Weather</dt><dd>${WEATHER_LBL[e.weather]}</dd><dt>Requirements</dt><dd>${esc(e.req||'None')}</dd></dl>
+     <p class="how">${esc(e.how)}</p></div>
+   <div class="panel"><h3>Session history</h3>
+     ${sessions.length?bars(sessions.map(x=>x.count),sessions.map((x,i)=>'#'+(h.sessions.length-sessions.length+i+1)))+`<div class="sesslist">${sessions.slice().reverse().map((x,i)=>`<div><span>Session ${h.sessions.length-i}, ${new Date(x.start).toLocaleDateString(LOC(),{month:'short',day:'numeric'})}</span><span><b>${fmt(x.count)}</b> in ${shortDur(x.activeMs)}</span></div>`).join('')}</div>`
+     :`<p class="muted small" style="margin-top:8px">Finished sessions are listed here. A session starts on your first +1.</p>`}</div>
+  </div></div>`;
+}
+function bars(vals,labels){const W=460,H=150,pb=22,max=Math.max(...vals,1),n=vals.length,bw=Math.min(46,(W-20)/n-10);
+  const gap=(W-n*bw)/(n+1);
+  return `<svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="Bar chart">${vals.map((v,i)=>{const h=Math.max(2,(H-pb-18)*v/max),x=gap+i*(bw+gap),y=H-pb-h;
+    return `<rect x="${x}" y="${y}" width="${bw}" height="${h}" rx="6" fill="var(--accent)" opacity="${.55+.45*(i+1)/n}"/><text class="v" x="${x+bw/2}" y="${y-5}" text-anchor="middle">${fmt(v)}</text><text x="${x+bw/2}" y="${H-6}" text-anchor="middle">${esc(labels[i])}</text>`}).join('')}</svg>`}
+
+/* live values, updated without re-rendering */
+function binds(h){const o=oddsOf(h),p=o[1]>1?cumProb(h.count,o[1]):null;const sm=sessMs(h),tm=totalMs(h);
+  const basis=h.session&&h.session.count>=10?[sm,h.session.count]:[tm,h.count];
+  return{count:fmt(h.count),label:h.label,labelLower:h.label.toLowerCase(),chain:fmt(h.chain),best:fmt(h.best),
+    prob:p===null?'—':pct(p),probbar:p===null?0:p*100,oddsx:o[1]>1?dec(h.count/o[1],2)+'×':'—',
+    sess:hms(sm),total:hms(tm),sesscount:fmt(h.session?h.session.count:0),
+    avg:basis[1]?dec(basis[0]/basis[1]/1000,1)+' s':'—',rate:basis[0]>60000?fmt(Math.round(basis[1]/(basis[0]/3600000))):'—'}}
+function refresh(){
+  const since=Math.round((Date.now()-lastSaved)/1000);
+  $$('[data-b="saved"]').forEach(el=>el.textContent=tr(dirty&&since>1?'Saving…':since<5?'Saved just now':'Last saved '+(since<60?since+' seconds ago':Math.round(since/60)+' min ago')));
+  const scope=[[view.name==='hunt'?huntById(view.arg):cur(),'#main'],[cur(),'#mini-root']];
+  scope.forEach(([h,root])=>{if(!h)return;const b=binds(h);$$('[data-b]',$(root)).forEach(el=>{const k=el.dataset.b;if(!(k in b))return;
+    const val=typeof b[k]==='string'?tr(b[k]):b[k];if(k==='probbar')el.style.width=val+'%';else if(el.textContent!==String(val))el.textContent=val})});
+}
+setInterval(refresh,1000);
+
+/* ---------- species grid (shared by wizard & database) ---------- */
+const PAGE=120,gridLimit={w:PAGE,d:PAGE};
+function filterSpecies(f){const q=f.q.trim().toLowerCase().replace(/^#/,'');
+  return SPECIES.filter(s=>{
+    if(q){if(/^\d+$/.test(q)){if(!(s.dex===+q||dex3(s.dex).startsWith(q)))return false}
+      else if(!(s.name.toLowerCase().includes(q)||s.types.some(t=>t.startsWith(q))))return false}
+    if(f.gen&&s.gen!==+f.gen)return false;if(f.type&&!s.types.includes(f.type))return false;if(f.stage!==''&&s.stage!==+f.stage)return false;
+    if(f.tags.length&&!f.tags.some(t=>s.tags.includes(t)))return false;
+    if(f.fav&&!S.favorites.includes(s.dex))return false;
+    if(f.data||f.game||f.method){const av=avFor(s.dex).filter(a=>(!f.game||a.game===f.game)&&(!f.method||a.method===f.method));if(!av.some(huntable))return false}
+    return true})}
+function filtersHTML(f,ctx){const gens=[1,2,3,4,5,6,7,8,9];
+  return `<div class="filters">
+   <input type="search" id="${ctx==='w'?'q':'dq'}" data-c="q" data-ctx="${ctx}" value="${esc(f.q)}" placeholder="Search by name, number or type" aria-label="Search Pokémon">
+   <select data-c="gen" data-ctx="${ctx}" aria-label="Generation"><option value="">All generations</option>${gens.map(g=>`<option value="${g}" ${+f.gen===g?'selected':''}>Gen ${g}, ${REGIONS[g-1]}</option>`).join('')}</select>
+   <select data-c="type" data-ctx="${ctx}" aria-label="Type"><option value="">All types</option>${Object.keys(TYPES).map(t=>`<option value="${t}" ${f.type===t?'selected':''}>${cap(t)}</option>`).join('')}</select>
+   <select data-c="game" data-ctx="${ctx}" aria-label="Guide game"><option value="">Guide: any game</option>${GAMES.filter(g=>g.baseOdds).map(g=>`<option value="${g.id}" ${f.game===g.id?'selected':''}>${esc(g.short)}</option>`).join('')}</select>
+   <select data-c="method" data-ctx="${ctx}" aria-label="Guide method"><option value="">Guide: any method</option>${Object.entries(METHODS).map(([k,m])=>`<option value="${k}" ${f.method===k?'selected':''}>${m.name}</option>`).join('')}</select></div>
+  <div class="tagrow">
+   <select data-c="stage" data-ctx="${ctx}" aria-label="Evolution stage" style="width:auto;padding:5px 10px;border-radius:99px"><option value="">Any stage</option>${STAGES.map((s,i)=>`<option value="${i}" ${f.stage!==''&&+f.stage===i?'selected':''}>${s}</option>`).join('')}</select>
+   ${Object.entries(TAGS).map(([k,l])=>`<button class="tog" data-a="ftag" data-ctx="${ctx}" data-v="${k}" aria-pressed="${f.tags.includes(k)}">${l}</button>`).join('')}
+   <button class="tog" data-a="fbool" data-ctx="${ctx}" data-v="data" aria-pressed="${f.data}">Has a guide</button>
+   <button class="tog" data-a="fbool" data-ctx="${ctx}" data-v="fav" aria-pressed="${f.fav}">★ Favorites</button></div>`}
+function card(s,ctx){const has=avFor(s.dex).some(huntable),fav=S.favorites.includes(s.dex);
+  return `<div class="pcard ${ctx==='w'&&wiz.sp===s.dex?'sel':''}"><button class="pc-main" data-a="${ctx==='w'?'wiz-sp':'dex-open'}" data-v="${s.dex}">
+    ${orb(s.dex,{size:58})}<span class="num">#${dex3(s.dex)}</span><span class="nm">${esc(s.name)}</span><span>${typePills(s)}</span>
+    <span class="bl">${esc(s.blurb)}${s.tags.length?' '+s.tags.map(t=>TAGS[t]).join(', ')+'.':''}</span>${has?'<span class="guide">Hunting guide</span>':''}</button>
+    <button class="star ${fav?'on':''}" data-a="fav" data-v="${s.dex}" aria-label="${fav?'Remove from':'Add to'} favorites" aria-pressed="${fav}">${fav?'★':'☆'}</button></div>`}
+function gridHTML(f,ctx){const list=filterSpecies(f);
+  if(!list.length)return `<div class="empty"><h3>No Pokémon match these filters</h3><p>Try a shorter search or clear a filter.</p><button class="btn" data-a="fclear" data-ctx="${ctx}">Clear filters</button></div>`;
+  const shown=list.slice(0,gridLimit[ctx]);
+  return `<p class="muted small" style="margin:-6px 0 10px">${fmt(list.length)} Pokémon</p><div class="grid">${shown.map(s=>card(s,ctx)).join('')}</div>
+   ${list.length>shown.length?`<div class="more"><button class="btn" data-a="more" data-ctx="${ctx}">Show more (${fmt(list.length-shown.length)} left)</button></div>`:''}`}
+function regrid(ctx,keep){if(!keep)gridLimit[ctx]=PAGE;const el=$('#grid-'+ctx);if(el){el.innerHTML=gridHTML(fOf(ctx),ctx);watchMore()}}
+const moreIO='IntersectionObserver' in window?new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){const c=e.target.querySelector('[data-a="more"]')?.dataset.ctx;if(c){gridLimit[c]+=PAGE;regrid(c,true)}}}),{rootMargin:'700px'}):null;
+function watchMore(){if(!moreIO)return;moreIO.disconnect();$$('.more').forEach(m=>moreIO.observe(m))}
+
+/* ---------- wizard ---------- */
+function vWizard(){
+  const steps=['Pokémon','Game','Method','Location and odds'];
+  const reach=[true,!!wiz.sp,!!wiz.game,!!wiz.entry];
+  const head=`<div class="row between"><h1 style="font-size:34px">New hunt</h1><button class="btn ghost sm" data-a="go" data-v="home">Cancel</button></div>
+   <div class="steps" role="list">${steps.map((l,i)=>`<button role="listitem" class="stepb ${wiz.step===i+1?'on':''} ${wiz.step>i+1?'done':''}" data-a="wiz-step" data-v="${i+1}" ${reach[i]?'':'disabled'}><i>${wiz.step>i+1?'✓':i+1}</i>${l}</button>`).join('')}</div>`;
+  if(wiz.step===1){const s=wiz.sp&&SP[wiz.sp];const opts=s?gameOptions(s.dex):[];const nG=opts.filter(o=>o.guide).length,nC=opts.filter(o=>!o.why).length;
+    return head+`<div class="wizgrid"><div>${filtersHTML(wf,'w')}<div id="grid-w">${gridHTML(wf,'w')}</div></div>
+     <aside class="panel side">${s?`<p class="muted small">#${dex3(s.dex)}, ${REGIONS[s.gen-1]}</p><h2 style="font-size:28px">${esc(s.name)}</h2><div style="margin-top:6px">${typePills(s)}</div>
+      <div class="pair"><div>${orb(s.dex,{size:96})}Normal form</div><div class="sh" id="shinyslot">${orb(s.dex,{size:96,shiny:true})}Shiny form</div></div>
+      <button class="btn sm" data-a="wiz-shiny">Replay shiny sparkle</button>
+      ${ART[s.dex]?'':`<p class="slot" style="margin-top:12px">Placeholder art. You can load your own images in Settings, under Artwork.</p>`}
+      ${s.forms.length?`<p class="small muted" style="margin-top:14px">Form</p><div class="tagrow" style="margin:6px 0 0">${s.forms.map((f,i)=>`<button class="tog" data-a="wiz-form" data-v="${i}" aria-pressed="${wiz.form===i}">${esc(f.name)}</button>`).join('')}</div><div style="margin-top:8px">${typePills(formOf(s.dex,wiz.form))}</div>`:''}
+      <p class="small" style="margin:14px 0">${nG?`Hunting guide for ${nG} game${nG>1?'s':''}.`:'No hunting guide yet.'} ${nC?`You can track it in ${nC} game${nC>1?'s':''}.`:''}</p>
+      <button class="btn primary" style="width:100%" data-a="wiz-step" data-v="2" ${nC?'':'disabled'}>Choose game</button>`
+      :`<h3>Pick a Pokémon</h3><p class="muted small" style="margin-top:6px">All ${fmt(SPECIES.length)} Pokémon are here. Search by name, Pokédex number such as 004, or type. The normal and shiny forms appear here side by side.</p>`}</aside></div>`}
+  const s=SP[wiz.sp];
+  if(wiz.step===2){const opts=gameOptions(s.dex);
+    const tile=o=>{const g=o.g;const note=o.guide?o.ok.map(e=>METHODS[e.method].name).join(', '):o.es.length?(o.es[0].guaranteed?'Custom hunt. The guide says it is always shiny here.':'Custom hunt. The guide gift is shiny locked.'):'Custom hunt';
+      return `<button class="tile" data-a="wiz-game" data-v="${g.id}" aria-pressed="${wiz.game===g.id}" ${o.why?'disabled':''}><b>${esc(g.name)}</b><span class="muted small">${esc(g.platform)}, ${esc(g.region)}</span>
+       ${o.why?`<span class="muted small">${o.why}</span>`:`<span class="odds">Base 1 / ${fmt(g.baseOdds)}</span><span class="small ${o.guide?'':'muted'}">${note}</span>`}</button>`};
+    const byGen=list=>[...new Set(list.map(o=>o.g.gen))].map(gn=>`<p class="gen-h">Generation ${gn}</p><div class="tiles">${list.filter(o=>o.g.gen===gn).map(tile).join('')}</div>`).join('');
+    const guide=opts.filter(o=>o.guide),custom=opts.filter(o=>o.custom),no=opts.filter(o=>o.why);
+    return head+`<h2>Where are you hunting ${esc(s.name)}?</h2>
+     ${guide.length?`<h3 style="margin-top:20px">With a hunting guide</h3>${byGen(guide)}`:''}
+     ${custom.length?`<h3 style="margin-top:28px">Custom hunt</h3><p class="muted small" style="margin-top:4px;max-width:70ch">No guide yet, but the counter, odds and statistics work normally. Check that ${esc(s.name)} can be found in your game.</p>${byGen(custom)}`:''}
+     ${no.length?`<details><summary>Not possible (${no.length})</summary><div class="tiles" style="margin-top:12px">${no.map(tile).join('')}</div></details>`:''}`}
+  if(wiz.step===3){const{guide,custom}=methodOptions(s.dex,wiz.game),g=GM[wiz.game];
+    const mt=e=>{const m=METHODS[e.method];const best=e.odds.reduce((a,o)=>o[1]>1&&o[1]<a[1]?o:a,[0,Infinity]);
+      return `<button class="tile" data-a="wiz-method" data-v="${e.id}" aria-pressed="${wiz.entry===e.id}" ${huntable(e)?'':'disabled'}><b>${m.name}</b>
+       <span class="muted small">Counts ${m.counter.toLowerCase()}</span>
+       ${e.locked?`<span class="warn">Shiny locked</span><span class="small muted">${esc(e.locked)}</span>`:e.guaranteed?`<span class="warn" style="color:var(--gold)">Always shiny</span><span class="small muted">${esc(e.how)}</span>`
+       :`<span class="odds">${best[1]===Infinity?'':'Best odds '+oddsTxt(best)}</span><span class="small">${m.desc}</span>`}</button>`};
+    return head+`<h2>How are you hunting ${esc(s.name)} in ${esc(g.name)}?</h2>
+     ${guide.length?`<h3 style="margin-top:20px">From the guide</h3><div class="tiles" style="margin-top:10px">${guide.map(mt).join('')}</div>`:''}
+     ${custom.length?`<h3 style="margin-top:26px">${guide.length?'Other methods, no guide yet':'Methods'}</h3><div class="tiles" style="margin-top:10px">${custom.map(mt).join('')}</div>`:''}`}
+  const e=entryById(wiz.entry),m=METHODS[e.method];
+  return head+`<div class="wizgrid"><div class="stack">
+    <div class="panel"><h3>Location</h3><div class="tiles" style="margin-top:12px">${e.locs.map((l,i)=>`<button class="tile" data-a="wiz-loc" data-v="${i}" aria-pressed="${wiz.loc===i}"><b>${esc(l.name)}</b><span class="muted small">${esc(l.area)}${l.detail?', '+esc(l.detail):''}</span></button>`).join('')}</div></div>
+    <div class="panel"><h3>Your odds</h3><p class="muted small" style="margin-top:4px">Pick what applies to you. You can change this during the hunt.</p><div class="tiles" style="margin-top:12px">${e.odds.map((o,i)=>`<button class="tile" data-a="wiz-odds" data-v="${i}" aria-pressed="${wiz.odds===i}"><b>${oddsTxt(o)}</b><span class="muted small">${esc(o[0])}</span></button>`).join('')}</div></div>
+    <div class="panel"><label class="f">Counter name<input type="text" data-c="wlabel" value="${esc(wiz.label||tr(m.counter))}" maxlength="28"></label></div></div>
+   <aside class="panel side info">${orb(s.dex,{size:72,shiny:true})}<h2 style="margin-top:12px">${esc(s.name)}</h2><p class="muted small">${esc(GM[wiz.game].name)}, ${m.name}</p>
+    <dl><dt>Time</dt><dd>${TIME_LBL[e.time]}</dd><dt>Weather</dt><dd>${WEATHER_LBL[e.weather]}</dd><dt>Requirements</dt><dd>${esc(e.req||'None')}</dd></dl>
+    <p class="how">${esc(e.how)}</p>
+    <button class="btn primary" style="width:100%;margin-top:16px;height:48px;font-size:16px" data-a="wiz-start">Start hunt</button></aside></div>`;
+}
+
+/* ---------- database ---------- */
+let dexTab='all';
+function vDex(){return `<div class="row between"><h1 style="font-size:34px">Pokémon database</h1><span class="muted small">${fmt(SPECIES.length)} Pokémon, ${AV.length} guide entries</span></div>
+  <div style="margin-top:16px">${filtersHTML(df,'d')}</div><div id="grid-d">${gridHTML(df,'d')}</div>`}
+function openDex(dex){const s=SP[dex],av=avFor(dex);
+  modal(s.name,`<div class="row" style="margin-bottom:6px">${typePills(s)}<span class="muted small">#${dex3(s.dex)}, Generation ${s.gen}, ${STAGES[s.stage]}</span></div>
+   <div class="pair"><div>${orb(dex,{size:90})}Normal form</div><div class="sh">${orb(dex,{size:90,shiny:true})}Shiny form</div></div>
+   ${s.forms.length?`<h3 style="margin-bottom:8px">Forms</h3><div class="list" style="margin-bottom:16px">${s.forms.map(f=>`<div class="row between" style="padding:8px 12px;border-radius:10px;background:var(--raised)"><span>${esc(f.name)}</span><span>${typePills(f)}</span></div>`).join('')}</div>`:''}
+   <h3 style="margin-bottom:8px">Where to hunt</h3>${av.length?`<div class="list">${av.map(e=>`<div class="hrow" style="grid-template-columns:1fr auto;cursor:default"><span><b>${esc(GM[e.game].name)}</b><br><span class="muted small">${METHODS[e.method].name}, ${esc(e.locs[0].name)}</span></span>
+    ${huntable(e)?`<button class="btn sm primary" data-a="hunt-this" data-v="${e.id}">Hunt this</button>`:`<span class="muted small">${e.locked?'Shiny locked':'Always shiny'}</span>`}</div>`).join('')}</div>`
+    :`<p class="muted small">No guide entries yet for this Pokémon.</p>`}
+   ${gameOptions(dex).some(o=>!o.why)?`<div class="row between" style="margin-top:14px"><span class="muted small">Track it in any game from Generation ${Math.max(2,s.gen)} onward.</span><button class="btn sm" data-a="hunt-sp" data-v="${dex}">Start a custom hunt</button></div>`:''}`,[{label:(S.favorites.includes(dex)?'★ Remove favorite':'☆ Add to favorites'),fn:()=>{toggleFav(dex);openDex(dex);return false}},{label:'Close',cls:'primary'}],true)}
+
+/* ---------- games ---------- */
+function vGames(){const gens=[...new Set(GAMES.map(g=>g.gen))];
+  return `<h1 style="font-size:34px">Games</h1><p class="muted" style="margin-top:6px;max-width:70ch">Each game carries its own shiny rules. Odds are never assumed to be shared between games or methods.</p>
+  ${gens.map(gn=>`<p class="gen-h">Generation ${gn}</p><div class="tiles">${GAMES.filter(g=>g.gen===gn).map(g=>{const n=new Set(AV.filter(a=>a.game===g.id).map(a=>a.sp)).size;
+   return `<div class="tile" style="cursor:default"><b>${esc(g.name)}</b><span class="muted small">${esc(g.platform)}, ${esc(g.region)}</span>
+   ${g.baseOdds?`<span class="odds">Base 1 / ${fmt(g.baseOdds)}</span><span class="small muted">${n?n+' species with hunt data':'No hunt data yet'}</span>`:`<span class="small muted">Shiny Pokémon did not exist yet in this generation.</span>`}</div>`}).join('')}</div>`).join('')}`}
+
+/* ---------- history ---------- */
+function vHistory(){const list=S.hunts.filter(h=>h.status==='completed').sort((a,b)=>b.foundAt-a.foundAt);
+  return `<h1 style="font-size:34px">Shiny history</h1><p class="muted" style="margin:6px 0 20px">${list.length} shin${list.length===1?'y':'ies'} recorded.</p>
+  ${list.length?`<div class="hist">${list.map(h=>`<article class="hcard"><div class="shot" style="${h.shot?`background-image:url(${h.shot})`:''}">
+     ${h.shot?'':'No screenshot yet'}${orb(h.sp,{shiny:true,size:64})}</div>
+    <div class="body"><h3>${esc(SP[h.sp].name)}</h3><p class="muted small">${esc(GM[h.game].name)}</p>
+    <dl class="kv" style="margin-top:12px"><dt>${esc(h.label)}</dt><dd>${fmt(h.count)}</dd><dt>Method</dt><dd>${METHODS[h.method].name}</dd><dt>Found</dt><dd>${dateStr(h.foundAt)}, ${new Date(h.foundAt).toLocaleTimeString(LOC(),{hour:'2-digit',minute:'2-digit'})}</dd><dt>Time tracked</dt><dd>${shortDur(totalMs(h))}</dd></dl>
+    <div class="row" style="margin-top:14px"><label class="btn sm" style="cursor:pointer">${h.shot?'Replace':'Add'} screenshot<input type="file" accept="image/*" data-c="shot" data-v="${h.id}" hidden></label><button class="btn sm ghost" data-a="open" data-v="${h.id}">Open hunt</button></div></div></article>`).join('')}</div>`
+  :`<div class="empty"><h3>No shinies yet</h3><p>When you press “I found it!” on a hunt, it is recorded here with the date and attempt count.</p></div>`}`}
+
+/* ---------- statistics ---------- */
+function vStats(){const H=S.hunts,done=H.filter(h=>h.status==='completed');
+  const total=H.reduce((a,h)=>a+h.count,0),time=H.reduce((a,h)=>a+totalMs(h),0);
+  const byMethod={};H.forEach(h=>byMethod[h.method]=(byMethod[h.method]||0)+h.count);
+  const topM=Object.entries(byMethod).sort((a,b)=>b[1]-a[1])[0];
+  const days=[];for(let i=13;i>=0;i--){const d=new Date(Date.now()-i*864e5);d.setHours(0,0,0,0);days.push(d.getTime())}
+  const perDay=days.map(t=>H.reduce((a,h)=>a+h.sessions.filter(s=>s.start>=t&&s.start<t+864e5).reduce((x,s)=>x+s.count,0)+(h.session&&h.session.start>=t&&h.session.start<t+864e5?h.session.count:0),0));
+  const top=H.slice().sort((a,b)=>b.count-a.count).slice(0,8);
+  return `<h1 style="font-size:34px">Statistics</h1>
+  <div class="settings" style="margin-top:18px">
+   <div class="panel"><h3>All hunts</h3><dl class="kv" style="margin-top:12px"><dt>Total attempts</dt><dd>${fmt(total)}</dd><dt>Time tracked</dt><dd>${shortDur(time)}</dd><dt>Average per hour</dt><dd>${time>60000?fmt(Math.round(total/(time/36e5))):'—'}</dd>
+    <dt>Shinies found</dt><dd>${done.length}</dd><dt>Average attempts per shiny</dt><dd>${done.length?fmt(Math.round(done.reduce((a,h)=>a+h.count,0)/done.length)):'—'}</dd><dt>Most used method</dt><dd>${topM?METHODS[topM[0]].name:'—'}</dd>
+    <dt>Sessions</dt><dd>${H.reduce((a,h)=>a+h.sessions.length,0)}</dd></dl></div>
+   <div class="panel"><h3>Attempts over the last 14 days</h3>${bars(perDay,days.map(t=>new Date(t).getDate()))}</div>
+  </div>
+  <div class="panel" style="margin-top:16px"><h3>Attempts per hunt</h3>${top.length?bars(top.map(h=>h.count),top.map(h=>SP[h.sp].name.slice(0,9))):'<p class="muted small">No hunts yet.</p>'}</div>`}
+
+/* ---------- settings ---------- */
+let capturing=null;
+const keyLabel=k=>k?k.replace(/^Key/,'').replace(/^Digit/,'').replace(/^Numpad/,'Num ').replace(/^Mouse(\d)$/,(m,n)=>['Left click','Middle click','Right click','Mouse 4','Mouse 5'][n]||m):'None';
+function sw(path,val,label,sub){return `<div class="srow"><span>${label}${sub?`<br><span class="muted small">${sub}</span>`:''}</span><button class="switch" role="switch" aria-checked="${!!val}" aria-label="${label}" data-a="toggle" data-v="${path}"></button></div>`}
+function vSettings(){const st=S.settings,K=st.keys,ov=st.overlay;
+  const krow=(k,l)=>`<div class="srow"><span>${l}</span><button class="btn sm keybtn ${capturing===k?'wait':''}" data-a="setkey" data-v="${k}">${capturing===k?'Press a key…':keyLabel(K[k])}</button></div>`;
+  return `<h1 style="font-size:34px">Settings</h1>
+  <div class="settings" style="margin-top:18px">
+   <div class="panel"><h3>General</h3>
+    <div class="srow"><span>Profile name</span><input type="text" data-c="profile" value="${esc(st.profile)}" maxlength="24" style="width:170px"></div>
+    <div class="srow"><span>Language</span><select data-c="lang" aria-label="Language"><option value="pt" ${LANG()==='pt'?'selected':''}>Português</option><option value="en" ${LANG()==='en'?'selected':''}>English</option></select></div>
+    ${sw('anim',st.anim,'Animations','Counter bumps, milestones and the shiny celebration.')}
+    ${sw('sound',st.sound,'Sound effects','Soft click, milestone and shiny sounds. All original.')}</div>
+   <div class="panel"><h3>Counter hotkeys</h3>
+    ${krow('inc','Encounter +1')}${krow('egg','Egg +1')}${krow('undo','Undo (−1)')}${krow('pause','Pause session')}
+    ${sw('globalHotkeys',st.globalHotkeys,'Global hotkeys',IS_DESKTOP?'Hotkeys work while you play in another window. Mouse buttons only work while this window is focused.':'In the desktop app, hotkeys work while you play in another window. In the browser they work while this tab is focused.')}
+    ${IS_DESKTOP?sw('onTop',st.onTop,'Keep window on top','The app stays above your game or emulator. Pair it with compact mode.'):''}
+    <p class="muted small" style="margin-top:8px">Hotkeys apply to the hunt you opened last. Mouse 4 and 5 can be assigned by clicking them while waiting.</p></div>
+   <div class="panel"><h3>Appearance</h3>
+    <div class="srow"><span>Theme</span><select data-c="theme"><option value="dark" ${st.theme==='dark'?'selected':''}>Dark</option><option value="light" ${st.theme==='light'?'selected':''}>Light</option></select></div>
+    <div class="srow"><span>UI scale</span><select data-c="scale">${[90,100,110,125].map(v=>`<option value="${v}" ${st.scale===v?'selected':''}>${v}%</option>`).join('')}</select></div>
+    ${sw('compact',st.compact,'Compact mode','Tighter spacing for small windows.')}</div>
+   <div class="panel"><h3>Mini counter</h3>
+    ${sw('overlay.on',ov.on,'Show mini counter','A small floating counter. In the desktop app it is its own always-on-top window.')}
+    <div class="srow"><span>Opacity</span><input type="range" min="40" max="100" value="${ov.opacity}" data-c="opacity" aria-label="Opacity" style="width:150px"></div>
+    ${sw('overlay.showSpecies',ov.showSpecies,'Show Pokémon')}${sw('overlay.showOdds',ov.showOdds,'Show odds')}${sw('overlay.showTimer',ov.showTimer,'Show timer')}
+    <div class="srow"><span>Position</span><button class="btn sm" data-a="mini-reset">Reset position</button></div></div>
+   <div class="panel"><h3>Artwork</h3>
+    <p class="muted small" style="margin:6px 0 8px">Use your own images on the Pokémon cards. You can pick a folder, image files or a .zip archive. Name each file by Pokédex number or name, for example 025.png or pikachu.png. For shiny versions, put them in a folder called shiny or add “shiny” to the file name. Images stay on this device.</p>
+    <div class="srow"><span>Images loaded</span><b>${fmt(Object.keys(ART).length)}</b></div>
+    <div class="srow"><span>Add a folder</span><label class="btn sm" style="cursor:pointer">Choose folder<input type="file" data-c="art" webkitdirectory multiple hidden></label></div>
+    <div class="srow"><span>Add images or a .zip</span><label class="btn sm" style="cursor:pointer">Choose files<input type="file" data-c="art" accept="image/*,.zip,application/zip" multiple hidden></label></div>
+    <div class="srow"><span>Remove all artwork</span><button class="btn sm danger" data-a="artclear" ${Object.keys(ART).length?'':'disabled'}>Remove</button></div></div>
+   <div class="panel"><h3>Data</h3>
+    <div class="srow"><span>Export all hunts</span><span class="row"><button class="btn sm" data-a="export" data-v="json">JSON</button><button class="btn sm" data-a="export" data-v="csv">CSV</button></span></div>
+    <div class="srow"><span>Import hunts from JSON</span><button class="btn sm" data-a="import">Import</button></div>
+    <div class="srow"><span>Autosave</span><span class="muted small" data-b="saved"></span></div>
+    <div class="srow"><span>Reset all data<br><span class="muted small">Deletes every hunt and setting on this device.</span></span><button class="btn sm danger" data-a="resetall">Reset data</button></div></div>
+  </div>`}
+
+/* ---------- mini overlay ---------- */
+function renderMini(){const root=$('#mini-root'),ov=S.settings.overlay,h=cur();
+  if(!ov.on||!h){root.innerHTML='';return}
+  const pos=ov.x!==null?`left:${ov.x}px;top:${ov.y}px;right:auto;bottom:auto;`:'';
+  root.innerHTML=`<div class="mini" style="${pos}--op:${ov.opacity/100}" role="region" aria-label="Mini counter">
+   <div class="grip" id="grip"><span>Mini counter</span><button data-a="mini" aria-label="Close mini counter">×</button></div>
+   <div class="in">${ov.showSpecies?`<div class="nm">${esc(SP[h.sp].name)}</div><div class="gm">${esc(GM[h.game].short)}</div>`:''}
+    <div class="c" data-b="count">${fmt(h.count)}</div><div class="l" data-b="label">${esc(h.label)}</div>
+    <button class="inc" data-a="inc" data-v="1" ${isClosed(h)?'disabled':''}>+1 <span class="kbd">${keyLabel(S.settings.keys.inc)}</span></button>
+    ${ov.showOdds||ov.showTimer?`<div class="meta">${ov.showOdds?`<span>${oddsTxt(oddsOf(h))}</span>`:'<span></span>'}${ov.showTimer?`<span data-b="sess">${hms(sessMs(h))}</span>`:''}</div>`:''}</div></div>`;
+  const grip=$('#grip'),box=root.firstElementChild;
+  grip.addEventListener('pointerdown',e=>{if(e.target.closest('button'))return;const r=box.getBoundingClientRect(),ox=e.clientX-r.left,oy=e.clientY-r.top;grip.setPointerCapture(e.pointerId);
+    const mv=ev=>{const x=Math.max(0,Math.min(innerWidth-r.width,ev.clientX-ox)),y=Math.max(0,Math.min(innerHeight-40,ev.clientY-oy));Object.assign(box.style,{left:x+'px',top:y+'px',right:'auto',bottom:'auto'});ov.x=x;ov.y=y};
+    const up=()=>{grip.removeEventListener('pointermove',mv);grip.removeEventListener('pointerup',up);touch()};
+    grip.addEventListener('pointermove',mv);grip.addEventListener('pointerup',up)});
+}
+
+/* ========================= actions ========================= */
+const fOf=ctx=>ctx==='w'?wf:df;
+function toggleFav(dex){const i=S.favorites.indexOf(dex);if(i>=0)S.favorites.splice(i,1);else S.favorites.push(dex);touch()}
+function startWizardAt(entryId){const e=entryById(entryId);Object.assign(wiz,{step:4,sp:e.sp,game:e.game,entry:e.id,loc:0,odds:0,label:''});closeModal();go('new')}
+function createHunt(entryId,loc,odds,label,form){const h=mkHunt(entryId,loc,odds,label);const f=formOf(h.sp,form);if(f)h.form=f.name;S.hunts.unshift(h);S.current=h.id;save();
+  Object.assign(wiz,{step:1,sp:null,game:null,entry:null,loc:0,odds:0,label:'',form:0});go('hunt',h.id);
+  toast(`Hunt started. Press ${keyLabel(S.settings.keys.inc)} to count.`)}
+function download(kind){
+  let text;if(kind==='json')text=JSON.stringify({app:'shiny-hunt-counter',exportedAt:new Date().toISOString(),...S},null,2);
+  else{const rows=[['id','pokemon','dex','game','method','counter_name','count','status','created','found','time_ms']];
+    S.hunts.forEach(h=>rows.push([h.id,SP[h.sp].name,h.sp,GM[h.game].name,METHODS[h.method].name,h.label,h.count,h.status,new Date(h.createdAt).toISOString(),h.foundAt?new Date(h.foundAt).toISOString():'',totalMs(h)]));
+    text=rows.map(r=>r.map(c=>/[",\n]/.test(String(c))?'"'+String(c).replace(/"/g,'""')+'"':c).join(',')).join('\n')}
+  modal('Export '+kind.toUpperCase(),`<p class="muted small" style="margin-bottom:10px">Copy this and keep it somewhere safe. The desktop app saves it straight to a file.</p><textarea id="exp" readonly>${esc(text)}</textarea>`,
+   [{label:'Close'},{label:'Copy',cls:'primary',fn:()=>{const t=$('#exp');t.select();(navigator.clipboard?navigator.clipboard.writeText(t.value):Promise.reject()).then(()=>toast('Copied'),()=>{document.execCommand&&document.execCommand('copy');toast('Copied')});return false}}],true)}
+function doImport(){modal('Import hunts',`<p class="muted small" style="margin-bottom:10px">Paste a JSON export. It replaces the hunts and settings on this device.</p><textarea id="imp" placeholder='{"hunts": [...]}'></textarea>`,
+  [{label:'Cancel'},{label:'Import and replace',cls:'primary',fn:()=>{try{const d=JSON.parse($('#imp').value);if(!Array.isArray(d.hunts))throw 0;
+    const bad=d.hunts.find(h=>!entryById(h.entry));if(bad)throw 0;
+    S={version:1,settings:{...defaultSettings(),...d.settings},hunts:d.hunts,favorites:d.favorites||[],current:d.current||d.hunts[0]?.id};save();go('home');toast('Imported '+d.hunts.length+' hunts');}
+    catch(e){toast('That file is not a valid export from this app. Check that you pasted the whole JSON.','danger');return false}}}],true)}
+function readShot(file,id){if(!file)return;const r=new FileReader();r.onload=()=>{const img=new Image();img.onload=()=>{const k=Math.min(1,800/img.width),c=document.createElement('canvas');
+  c.width=img.width*k;c.height=img.height*k;c.getContext('2d').drawImage(img,0,0,c.width,c.height);huntById(id).shot=c.toDataURL('image/jpeg',.82);save();render();toast('Screenshot added')};img.src=r.result};r.readAsDataURL(file)}
+
+document.addEventListener('click',e=>{
+  const b=e.target.closest('[data-a]');if(!b||b.disabled)return;const a=b.dataset.a,v=b.dataset.v,ctx=b.dataset.ctx;
+  const h=view.name==='hunt'?huntById(view.arg):cur();
+  switch(a){
+    case 'go':$('.celebrate')?.remove();closeModal();go(v);break;
+    case 'open':go('hunt',v);break;
+    case 'newhunt':Object.assign(wiz,{step:1,sp:null,game:null,entry:null,loc:0,odds:0,label:'',form:0});go('new');break;
+    case 'inc':{const t=b.closest('.mini')||view.name!=='hunt'?cur():h;inc(t,+v);break}
+    case 'reset':confirmDo('Reset the counter?',`${esc(SP[h.sp].name)} goes from ${fmt(h.count)} back to 0. Sessions and time stay.`,'Reset to 0',()=>{h.count=0;h.chain=0;if(h.session)h.session.count=0;touch();render()},'danger');break;
+    case 'breakchain':confirmDo('Chain broke?',`Your chain of ${fmt(h.chain)} goes back to 0. Total ${h.label.toLowerCase()} stay the same.`,'Reset chain',()=>{h.chain=0;touch();refresh()});break;
+    case 'sess-start':startSession(h);touch();render();break;
+    case 'sess-pause':togglePause(h);break;
+    case 'sess-end':endSession(h);touch();render();toast('Session saved');break;
+    case 'found':confirmDo('Record your shiny?',`${esc(SP[h.sp].name)} after ${fmt(h.count)} ${esc(h.label.toLowerCase())}. The hunt is marked as completed.`,'Record shiny',()=>{endSession(h);h.status='completed';h.foundAt=Date.now();save();render();celebrate(h)},'gold');break;
+    case 'reopen':h.status='active';h.foundAt=null;touch();render();break;
+    case 'cel-close':$('.celebrate')?.remove();break;
+    case 'rename':modal('Rename counter',`<label class="f">Counter name<input type="text" id="rn" value="${esc(tr(h.label))}" maxlength="28"></label>`,[{label:'Cancel'},{label:'Save name',cls:'primary',fn:()=>{const n=$('#rn').value.trim();if(!n){toast('Enter a name for the counter.','danger');return false}h.label=n;touch();render()}}]);break;
+    case 'delhunt':confirmDo('Delete this hunt?',`${esc(SP[h.sp].name)} with ${fmt(h.count)} ${esc(h.label.toLowerCase())} and all its sessions will be removed. This cannot be undone.`,'Delete hunt',()=>{S.hunts=S.hunts.filter(x=>x.id!==h.id);if(S.current===h.id)S.current=S.hunts.find(x=>!isClosed(x))?.id||null;save();go('hunts')},'danger');break;
+    case 'mini':S.settings.overlay.on=!S.settings.overlay.on;touch();render();break;
+    case 'mini-reset':S.settings.overlay.x=S.settings.overlay.y=null;touch();render();break;
+    case 'hfilter':huntFilter=v;render();break;
+    case 'ftag':{const f=fOf(ctx),i=f.tags.indexOf(v);i>=0?f.tags.splice(i,1):f.tags.push(v);b.setAttribute('aria-pressed',i<0);regrid(ctx);break}
+    case 'fbool':{const f=fOf(ctx);f[v]=!f[v];b.setAttribute('aria-pressed',f[v]);regrid(ctx);break}
+    case 'fclear':gridLimit[ctx]=PAGE;Object.assign(fOf(ctx),{q:'',gen:'',type:'',stage:'',tags:[],data:false,fav:false,game:'',method:''});render();break;
+    case 'fav':toggleFav(+v);if(view.name==='new'||view.name==='dex')regrid(view.name==='new'?'w':'d');break;
+    case 'dex-open':openDex(+v);break;
+    case 'hunt-this':startWizardAt(v);break;
+    case 'hunt-sp':Object.assign(wiz,{step:2,sp:+v,game:null,entry:null,loc:0,odds:0,label:''});closeModal();go('new');break;
+    case 'more':gridLimit[ctx]+=PAGE;regrid(ctx,true);break;
+    case 'artclear':confirmDo('Remove all artwork?','Your images are removed from this device. The cards go back to placeholder art.','Remove artwork',()=>{artClear()},'danger');break;
+    case 'wiz-form':wiz.form=+v;render();break;
+    case 'wiz-sp':wiz.sp=+v;wiz.form=0;wiz.game=wiz.entry=null;render();{const el=$('#shinyslot .orb');if(el&&S.settings.anim)el.classList.add('reveal')}break;
+    case 'wiz-shiny':{const el=$('#shinyslot .orb');if(el){el.classList.remove('reveal');void el.offsetWidth;el.classList.add('reveal')}tone([1319,1976],.2,'sine',.08,.05);break}
+    case 'wiz-step':wiz.step=+v;render();break;
+    case 'wiz-game':wiz.game=v;wiz.entry=null;{const ok=allMethods(wiz.sp,v);wiz.step=3;if(ok.length===1){wiz.entry=ok[0].id;wiz.loc=0;wiz.odds=0;wiz.label='';wiz.step=4}}render();break;
+    case 'wiz-method':wiz.entry=v;wiz.loc=0;wiz.odds=0;wiz.label='';wiz.step=4;render();break;
+    case 'wiz-loc':wiz.loc=+v;render();break;
+    case 'wiz-odds':wiz.odds=+v;render();break;
+    case 'wiz-start':{const def=tr(METHODS[entryById(wiz.entry).method].counter),l=(wiz.label||'').trim();createHunt(wiz.entry,wiz.loc,wiz.odds,l===def?'':l,wiz.form);break}
+    case 'quick-start':createHunt(quick.entry,0,0);Object.assign(quick,{sp:'',game:'',entry:''});break;
+    case 'toggle':{const p=v.split('.');let o=S.settings;while(p.length>1)o=o[p.shift()];o[p[0]]=!o[p[0]];touch();render();
+      if(v==='globalHotkeys')syncGlobalHotkeys();if(v==='onTop')applyOnTop();break}
+    case 'setkey':capturing=capturing===v?null:v;if(capturing)pauseGlobalHotkeys();else syncGlobalHotkeys();render();break;
+    case 'export':download(v);break;
+    case 'import':doImport();break;
+    case 'resetall':confirmDo('Reset all data?','Every hunt, session, shiny record and setting on this device will be deleted. Export first if you want a backup.','Delete everything',()=>{try{localStorage.removeItem(KEY)}catch(e){}S={version:1,settings:defaultSettings(),hunts:[],favorites:[],current:null};save();go('home');toast('All data deleted')},'danger');break;
+  }
+});
+document.addEventListener('input',e=>{const t=e.target,c=t.dataset.c;if(!c)return;
+  if(c==='q'){fOf(t.dataset.ctx).q=t.value;regrid(t.dataset.ctx)}
+  else if(c==='wlabel')wiz.label=t.value;
+  else if(c==='profile'){S.settings.profile=t.value||'Local save';touch();renderTop()}
+  else if(c==='opacity'){S.settings.overlay.opacity=+t.value;const m=$('.mini');if(m)m.style.setProperty('--op',t.value/100);touch()}
+});
+document.addEventListener('change',e=>{const t=e.target,c=t.dataset.c;if(!c)return;const h=view.name==='hunt'?huntById(view.arg):null;
+  if(['gen','type','game','method','stage'].includes(c)){fOf(t.dataset.ctx)[c]=t.value;regrid(t.dataset.ctx)}
+  else if(c==='hodds'){h.odds=+t.value;touch();render()}
+  else if(c==='hloc'){h.loc=+t.value;touch();render()}
+  else if(c==='hstatus'){if(t.value==='abandoned'){endSession(h)}h.status=t.value;touch();render()}
+  else if(c==='qsp'){quick.sp=t.value;quick.game=quick.entry='';render()}
+  else if(c==='qgame'){quick.game=t.value;quick.entry='';const ok=quick.game?allMethods(+quick.sp,quick.game):[];if(ok.length===1)quick.entry=ok[0].id;render()}
+  else if(c==='qentry'){quick.entry=t.value;render()}
+  else if(c==='lang'){S.settings.lang=t.value;touch();render()}
+  else if(c==='theme'){S.settings.theme=t.value;touch();render()}
+  else if(c==='scale'){S.settings.scale=+t.value;touch();render()}
+  else if(c==='shot'){readShot(t.files[0],t.dataset.v)}
+  else if(c==='art'){importArt([...t.files]);t.value=''}
+});
+
+/* ========================= hotkey system ========================= */
+function handleBinding(name,e){
+  if(capturing){e.preventDefault();setTimeout(syncGlobalHotkeys,0);if(name!=='Escape'){const K=S.settings.keys,clash=Object.keys(K).find(k=>K[k]===name&&k!==capturing);if(clash)K[clash]=K[capturing];K[capturing]=name;touch();toast(keyLabel(name)+' assigned')}capturing=null;render();return true}
+  const K=S.settings.keys,h=cur();
+  if(name===K.inc||name===K.egg){e.preventDefault();if(!h)toast('Open a hunt first, then press '+keyLabel(name)+' to count.');else if(isClosed(h))toast('This hunt is closed. Reopen it to keep counting.');else inc(h,1);return true}
+  if(name===K.undo){e.preventDefault();h&&inc(h,-1);return true}
+  if(name===K.pause){e.preventDefault();h&&togglePause(h);return true}
+  return false}
+document.addEventListener('keydown',e=>{
+  if(desktopHotkeysOn()&&!capturing)return; // the desktop app handles hotkeys globally
+  if(e.key==='Escape'&&!capturing){if($('.celebrate')){$('.celebrate').remove();return}if($('#scrim')){closeModal();return}}
+  if(!capturing&&(e.target.matches('input,textarea,select')||$('#scrim')))return;
+  if(e.repeat&&!capturing)return;
+  handleBinding(e.code,e)});
+document.addEventListener('mousedown',e=>{if(e.button<3)return;handleBinding('Mouse'+e.button,e)});
+document.addEventListener('mouseup',e=>{if(e.button>=3)e.preventDefault()});
+
+/* ========================= artwork (user-supplied, stored in IndexedDB) ========================= */
+const NAME2DEX=Object.fromEntries(SPECIES.map(s=>[s.name.toLowerCase().replace(/♀/,'f').replace(/♂/,'m').replace(/[^a-z0-9]/g,''),s.dex]));
+function idb(){return new Promise((res,rej)=>{try{const r=indexedDB.open('shc-art',1);r.onupgradeneeded=()=>r.result.createObjectStore('art');r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)}catch(e){rej(e)}})}
+async function artLoad(){try{const db=await idb();const req=db.transaction('art').objectStore('art').openCursor();let n=0;
+  req.onsuccess=()=>{const c=req.result;if(c){ART[c.key]=c.value;n++;c.continue()}else if(n)render()}}catch(e){}}
+async function artPut(k,v){const db=await idb();return new Promise((res,rej)=>{const tx=db.transaction('art','readwrite');tx.objectStore('art').put(v,k);tx.oncomplete=res;tx.onerror=()=>rej(tx.error)})}
+async function artClear(){try{const db=await idb();await new Promise(r=>{const tx=db.transaction('art','readwrite');tx.objectStore('art').clear();tx.oncomplete=r;tx.onerror=r})}catch(e){}ART={};render();toast('Artwork removed')}
+function shrink(file){return new Promise((res,rej)=>{const r=new FileReader();r.onerror=rej;r.onload=()=>{const img=new Image();img.onerror=rej;img.onload=()=>{
+  const k=Math.min(1,256/Math.max(img.width,img.height)),c=document.createElement('canvas');c.width=Math.max(1,Math.round(img.width*k));c.height=Math.max(1,Math.round(img.height*k));
+  c.getContext('2d').drawImage(img,0,0,c.width,c.height);res(c.toDataURL('image/webp',.9))};img.src=r.result};r.readAsDataURL(file)})}
+function dexFromPath(path){const base=path.split('/').pop().replace(/\.[a-z0-9]+$/,'');
+  const key=base.replace(/shiny/g,'').replace(/-f$/,'f').replace(/-m$/,'m').replace(/[^a-z0-9]/g,'');if(NAME2DEX[key])return NAME2DEX[key];
+  const num=base.match(/\d{1,4}/);return num&&SP[+num[0]]?+num[0]:null}
+function loadZipLib(){return window.JSZip?Promise.resolve():new Promise((res,rej)=>{const sc=document.createElement('script');sc.src='https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js';sc.onload=res;sc.onerror=rej;document.head.appendChild(sc)})}
+async function expandZips(files){const out=[];for(const f of files){if(!/\.zip$/i.test(f.name)){out.push(f);continue}
+  try{await loadZipLib();toast('Opening '+f.name+'…');const z=await JSZip.loadAsync(f);
+    for(const e of Object.values(z.files)){if(e.dir||!/\.(png|jpe?g|webp|gif)$/i.test(e.name)||/(^|\/)__macosx\//i.test(e.name))continue;
+      const blob=await e.async('blob');const file=new File([blob],e.name.split('/').pop(),{type:'image/'+(e.name.split('.').pop().toLowerCase().replace('jpg','jpeg'))});
+      Object.defineProperty(file,'webkitRelativePath',{value:e.name});out.push(file)}}
+  catch(err){toast('Could not open '+f.name+'. Check that it is a valid .zip file.','danger')}}return out}
+async function importArt(files){files=await expandZips(files);files=files.filter(f=>/^image\//.test(f.type)||/\.(png|jpe?g|webp|gif)$/i.test(f.name));
+  if(!files.length){toast('No images found. Use PNG, JPG, WebP or GIF files.','danger');return}
+  toast('Loading '+fmt(files.length)+' images…');let ok=0,skip=0;
+  for(const f of files){const path=(f.webkitRelativePath||f.name).toLowerCase(),dex=dexFromPath(path);if(!dex){skip++;continue}
+    try{const k=dex+(/shiny/.test(path)?'s':''),url=await shrink(f);ART[k]=url;await artPut(k,url);ok++}catch(e){skip++}}
+  render();toast(fmt(ok)+' image'+(ok===1?'':'s')+' added'+(skip?', '+skip+' skipped because the name did not match a Pokémon':''))}
+
+/* ========================= desktop integration (Tauri) ========================= */
+// In the desktop build, window.__TAURI__ exists. In a browser it does not, and all of this is skipped.
+const TAURI=window.__TAURI__||null,IS_DESKTOP=!!TAURI;
+const desktopHotkeysOn=()=>IS_DESKTOP&&!!TAURI.globalShortcut&&S.settings.globalHotkeys;
+let gsQueue=Promise.resolve();
+function pauseGlobalHotkeys(){if(!IS_DESKTOP||!TAURI.globalShortcut)return;gsQueue=gsQueue.then(()=>TAURI.globalShortcut.unregisterAll().catch(()=>{}))}
+function syncGlobalHotkeys(){if(!IS_DESKTOP||!TAURI.globalShortcut)return;const gs=TAURI.globalShortcut;
+  gsQueue=gsQueue.then(async()=>{try{await gs.unregisterAll()}catch(e){}
+    if(!S.settings.globalHotkeys)return;const K=S.settings.keys,map={};
+    [['inc',1],['egg',1],['undo',-1],['pause',0]].forEach(([k,n])=>{const a=K[k];if(a&&!/^Mouse/.test(a)&&!(a in map))map[a]=n});
+    for(const[acc,n]of Object.entries(map)){try{await gs.register(acc,ev=>{if(ev&&ev.state&&ev.state!=='Pressed')return;globalHit(n)})}
+      catch(e){toast(keyLabel(acc)+' could not be used as a global hotkey. Another program may already be using it.','danger')}}})}
+function globalHit(n){const h=cur();if(!h){toast('Open a hunt first.');return}if(isClosed(h))return;if(n===0)togglePause(h);else inc(h,n)}
+function applyOnTop(){if(!IS_DESKTOP||!TAURI.window)return;try{TAURI.window.getCurrentWindow().setAlwaysOnTop(!!S.settings.onTop)}catch(e){}}
+
+load();render();artLoad();syncGlobalHotkeys();applyOnTop();
+</script>
+</body>
+</html>
