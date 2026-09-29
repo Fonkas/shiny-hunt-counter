@@ -291,6 +291,10 @@ details summary{cursor:pointer;color:var(--muted);font-weight:600;margin-top:22p
 .mini .inc:active,.mini .inc.press{box-shadow:0 1px 0 #3B52B8;transform:translateY(4px)}
 .mini .meta{display:flex;justify-content:space-between;margin-top:12px;font:600 12.5px var(--display);color:var(--screen-muted)}
 
+body.miniwin,html:has(body.miniwin){background:transparent!important;min-height:0;overflow:hidden}
+body.miniwin #top{display:none}body.miniwin main{padding:0;max-width:none}
+.mini.mw{position:static;width:100vw;height:100vh;display:flex;flex-direction:column;border-radius:18px}
+.mini.mw .in{flex:1;display:flex;flex-direction:column;justify-content:center}
 body.compact main{padding-top:16px} body.compact .panel{padding:14px} body.compact .inc{height:74px}
 body.noanim *,body.noanim *::before,body.noanim *::after{animation:none!important;transition:none!important}
 @media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition:none!important}}
@@ -530,7 +534,7 @@ const PT={
 'Forest dweller, evolves from Pichu.':'Vive nas florestas e evolui de Pichu.','Bites on almost any rod, almost anywhere.':'Morde em quase todas as canas, em quase todo o lado.','Evolves from Magikarp at level 20.':'Evolui de Magikarp no nível 20.',
 'Branches into eight evolutions.':'Tem oito evoluções diferentes.','Rare Dragon type, usually fished.':'Tipo Dragon raro, normalmente pescado.','Post-game legendary in Kanto.':'Lendário do pós-jogo em Kanto.','Mythical, mostly event-only.':'Mítico, quase sempre só por evento.',
 'Start of a pseudo-legendary line.':'Início de uma linha pseudo-lendária.','Rare grass encounter in Hoenn.':'Encontro raro na relva em Hoenn.','Cave-dwelling pseudo-legendary line.':'Linha pseudo-lendária que vive em grutas.','Rare overworld spawn in Galar.':'Aparece raramente no mapa em Galar.',
-'Legendary.':'Lendário.','Mythical.':'Mítico.','Ultra Beast.':'Ultra Beast.','Paradox.':'Paradox.','English':'English','Português':'Português'
+'A small counter window that stays on top of your game, even when the app is minimized.':'Uma janela pequena que fica por cima do jogo, mesmo com a app minimizada.','Legendary.':'Lendário.','Mythical.':'Mítico.','Ultra Beast.':'Ultra Beast.','Paradox.':'Paradox.','English':'English','Português':'Português'
 };
 // counter labels are shown lowercase in some sentences
 ['Encounters','Soft resets','Resets','Eggs hatched','Fishing encounters','Outbreak encounters'].forEach(k=>{PT[k.toLowerCase()]=PT[k].toLowerCase()});
@@ -672,7 +676,7 @@ function seedDemo(){
 function load(){try{const raw=localStorage.getItem(KEY);if(raw){const d=JSON.parse(raw);if(d&&Array.isArray(d.hunts)){d.settings={...defaultSettings(),...d.settings,keys:{...defaultSettings().keys,...(d.settings||{}).keys},overlay:{...defaultSettings().overlay,...(d.settings||{}).overlay}};S=d}}}catch(e){}
   if(!S)S=seed();}
 function save(){try{localStorage.setItem(KEY,JSON.stringify(S));lastSaved=Date.now();dirty=false}catch(e){toast('Progress could not be saved: browser storage is full or blocked.','danger')}}
-function touch(){dirty=true;clearTimeout(touch.t);touch.t=setTimeout(save,250)}
+function touch(){if(typeof MINI_WINDOW!=='undefined'&&MINI_WINDOW)return;dirty=true;clearTimeout(touch.t);touch.t=setTimeout(save,250);broadcastState()}
 setInterval(()=>{if(dirty)save()},10000);
 addEventListener('beforeunload',()=>{const h=cur();save()});
 document.addEventListener('visibilitychange',()=>{if(document.hidden)save()});
@@ -1051,7 +1055,7 @@ function vSettings(){const st=S.settings,K=st.keys,ov=st.overlay;
     <div class="srow"><span>UI scale</span><select data-c="scale">${[90,100,110,125].map(v=>`<option value="${v}" ${st.scale===v?'selected':''}>${v}%</option>`).join('')}</select></div>
     ${sw('compact',st.compact,'Compact mode','Tighter spacing for small windows.')}</div>
    <div class="panel"><h3>Mini counter</h3>
-    ${sw('overlay.on',ov.on,'Show mini counter','A small floating counter. In the desktop app it is its own always-on-top window.')}
+    ${sw('overlay.on',ov.on,'Show mini counter',IS_DESKTOP?'A small counter window that stays on top of your game, even when the app is minimized.':'A small floating counter. In the desktop app it is its own always-on-top window.')}
     <div class="srow"><span>Opacity</span><input type="range" min="40" max="100" value="${ov.opacity}" data-c="opacity" aria-label="Opacity" style="width:150px"></div>
     ${sw('overlay.showSpecies',ov.showSpecies,'Show Pokémon')}${sw('overlay.showOdds',ov.showOdds,'Show odds')}${sw('overlay.showTimer',ov.showTimer,'Show timer')}
     <div class="srow"><span>Position</span><button class="btn sm" data-a="mini-reset">Reset position</button></div></div>
@@ -1070,6 +1074,7 @@ function vSettings(){const st=S.settings,K=st.keys,ov=st.overlay;
 
 /* ---------- mini overlay ---------- */
 function renderMini(){const root=$('#mini-root'),ov=S.settings.overlay,h=cur();
+  if(IS_DESKTOP){root.innerHTML='';syncMiniWindow();return}
   if(!ov.on||!h){root.innerHTML='';return}
   const pos=ov.x!==null?`left:${ov.x}px;top:${ov.y}px;right:auto;bottom:auto;`:'';
   root.innerHTML=`<div class="mini" style="${pos}--op:${ov.opacity/100}" role="region" aria-label="Mini counter">
@@ -1235,7 +1240,44 @@ function syncGlobalHotkeys(){if(!IS_DESKTOP||!TAURI.globalShortcut)return;const 
 function globalHit(n){const h=cur();if(!h){toast('Open a hunt first.');return}if(isClosed(h))return;if(n===0)togglePause(h);else inc(h,n)}
 function applyOnTop(){if(!IS_DESKTOP||!TAURI.window)return;try{TAURI.window.getCurrentWindow().setAlwaysOnTop(!!S.settings.onTop)}catch(e){}}
 
-load();render();artLoad();syncGlobalHotkeys();applyOnTop();
+/* ---------- mini counter as its own window (desktop only) ----------
+   The main window owns all data. The mini window only shows a snapshot and sends back "+1". */
+const MINI_WINDOW=IS_DESKTOP&&location.hash==='#mini';
+const BC='BroadcastChannel' in window?new BroadcastChannel('shc-mini'):null;
+function miniSnapshot(){const h=cur(),ov=S.settings.overlay;if(!h)return{empty:true,lang:LANG()};
+  return{empty:false,lang:LANG(),name:SP[h.sp].name,form:h.form||'',game:GM[h.game].short,count:h.count,label:tr(h.label),odds:oddsTxt(oddsOf(h)),
+    sessMs:sessMs(h),running:!!(h.session&&h.session.runFrom),at:Date.now(),closed:isClosed(h),key:keyLabel(S.settings.keys.inc),
+    showSpecies:ov.showSpecies,showOdds:ov.showOdds,showTimer:ov.showTimer,op:ov.opacity}}
+function broadcastState(){if(BC&&IS_DESKTOP&&!MINI_WINDOW)BC.postMessage({type:'state',s:miniSnapshot()})}
+async function syncMiniWindow(){if(!IS_DESKTOP||MINI_WINDOW||!TAURI.webviewWindow)return;const W=TAURI.webviewWindow.WebviewWindow;
+  const want=!!(S.settings.overlay.on&&cur());let w=null;try{w=await W.getByLabel('mini')}catch(e){}
+  if(want&&!w){try{const nw=new W('mini',{url:'index.html#mini',title:'Shiny Hunt Counter',width:260,height:300,minWidth:200,minHeight:230,
+      alwaysOnTop:true,decorations:false,transparent:true,shadow:false,skipTaskbar:true,resizable:true});
+      nw.once('tauri://error',()=>toast('The mini counter window could not be opened.','danger'))}catch(e){}}
+  else if(!want&&w){try{await w.close()}catch(e){}}
+  else if(want&&w)broadcastState()}
+function initMiniWindow(){document.body.classList.add('miniwin');load();applySettings();let snap=null;
+  const tick=()=>{const t=$('[data-m="timer"]');if(t&&snap&&!snap.empty)t.textContent=hms(snap.sessMs+(snap.running?Date.now()-snap.at:0))};
+  const draw=()=>{if(!snap)return;S.settings.lang=snap.lang;const s=snap;
+    $('#main').innerHTML=`<div class="mini mw" style="--op:${(s.op||96)/100}"><div class="grip" data-tauri-drag-region><span data-tauri-drag-region>Mini counter</span><button data-m="close" aria-label="Close mini counter">×</button></div>
+      <div class="in">${s.empty?`<p class="l" style="margin-top:30px">Open a hunt first.</p>`:`${s.showSpecies?`<div class="nm">${esc(s.name)}${s.form?` <span class="gm">${esc(s.form)}</span>`:''}</div><div class="gm">${esc(s.game)}</div>`:''}
+      <div class="c">${fmt(s.count)}</div><div class="l">${esc(s.label)}</div>
+      <button class="inc" data-m="inc" ${s.closed?'disabled':''}>+1 <span class="kbd">${esc(s.key)}</span></button>
+      ${s.showOdds||s.showTimer?`<div class="meta">${s.showOdds?`<span>${esc(s.odds)}</span>`:'<span></span>'}${s.showTimer?`<span data-m="timer"></span>`:''}</div>`:''}`}</div></div>`;tick()};
+  if(BC){BC.onmessage=e=>{const d=e.data||{};if(d.type==='state'){const bump=snap&&d.s.count>snap.count;snap=d.s;draw();
+      if(bump&&S.settings.anim){const c=$('.mini .c');if(c){c.classList.add('bump')}}}};BC.postMessage({type:'hello'})}
+  document.addEventListener('click',e=>{const b=e.target.closest('[data-m]');if(!b||b.disabled)return;
+    if(b.dataset.m==='inc'&&BC)BC.postMessage({type:'inc',n:1});
+    if(b.dataset.m==='close'){if(BC)BC.postMessage({type:'closed'});try{TAURI.window.getCurrentWindow().close()}catch(err){}}});
+  setInterval(tick,1000)}
+
+if(MINI_WINDOW){initMiniWindow()}
+else{
+  if(BC&&IS_DESKTOP)BC.onmessage=e=>{const d=e.data||{};
+    if(d.type==='inc')globalHit(d.n);else if(d.type==='hello')broadcastState();
+    else if(d.type==='closed'){S.settings.overlay.on=false;touch();render()}};
+  load();render();artLoad();syncGlobalHotkeys();applyOnTop();broadcastState();
+}
 </script>
 </body>
 </html>

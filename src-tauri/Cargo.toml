@@ -1,6 +1,6 @@
 [package]
 name = "shiny-hunt-counter"
-version = "0.1.0"
+version = "0.1.1"
 description = "Shiny Hunt Counter"
 edition = "2021"
 
