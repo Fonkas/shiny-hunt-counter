@@ -7,11 +7,14 @@ fn main() {
     tauri::Builder::default()
         // Global hotkeys (F8 = +1, etc.) that work while another window, like an emulator, is focused.
         .plugin(tauri_plugin_global_shortcut::Builder::new().build())
-        // Closing the main window closes the whole app, including the mini counter window.
+        // When the main window closes, close the mini counter too. The app then shuts down normally,
+        // which gives the main window time to finish saving.
         .on_window_event(|window, event| {
             if let tauri::WindowEvent::CloseRequested { .. } = event {
                 if window.label() == "main" {
-                    window.app_handle().exit(0);
+                    if let Some(mini) = window.app_handle().get_webview_window("mini") {
+                        let _ = mini.close();
+                    }
                 }
             }
         })

@@ -534,7 +534,12 @@ const PT={
 'Forest dweller, evolves from Pichu.':'Vive nas florestas e evolui de Pichu.','Bites on almost any rod, almost anywhere.':'Morde em quase todas as canas, em quase todo o lado.','Evolves from Magikarp at level 20.':'Evolui de Magikarp no nível 20.',
 'Branches into eight evolutions.':'Tem oito evoluções diferentes.','Rare Dragon type, usually fished.':'Tipo Dragon raro, normalmente pescado.','Post-game legendary in Kanto.':'Lendário do pós-jogo em Kanto.','Mythical, mostly event-only.':'Mítico, quase sempre só por evento.',
 'Start of a pseudo-legendary line.':'Início de uma linha pseudo-lendária.','Rare grass encounter in Hoenn.':'Encontro raro na relva em Hoenn.','Cave-dwelling pseudo-legendary line.':'Linha pseudo-lendária que vive em grutas.','Rare overworld spawn in Galar.':'Aparece raramente no mapa em Galar.',
-'A small counter window that stays on top of your game, even when the app is minimized.':'Uma janela pequena que fica por cima do jogo, mesmo com a app minimizada.','Legendary.':'Lendário.','Mythical.':'Mítico.','Ultra Beast.':'Ultra Beast.','Paradox.':'Paradox.','English':'English','Português':'Português'
+'A small counter window that stays on top of your game, even when the app is minimized.':'Uma janela pequena que fica por cima do jogo, mesmo com a app minimizada.','Set number':'Definir número','Set the counter':'Definir o contador','Save':'Guardar','Enter a number.':'Escreve um número.',
+'Automatic backups':'Cópias de segurança automáticas','A copy every 10 minutes, the last 6 are kept.':'Uma cópia a cada 10 minutos; ficam guardadas as últimas 6.','View backups':'Ver cópias',
+'Restore a backup':'Restaurar uma cópia','Restore':'Restaurar','Restore this backup?':'Restaurar esta cópia?','Restore backup':'Restaurar cópia','Backup restored':'Cópia restaurada',
+'The app keeps a copy of your hunts every 10 minutes. Restoring replaces your current hunts, but a copy of them is kept first.':'A app guarda uma cópia dos teus hunts a cada 10 minutos. Restaurar substitui os hunts atuais, mas antes é guardada uma cópia deles.',
+'There are no backups yet. The first one is made a few minutes after you start using the app.':'Ainda não há cópias. A primeira é feita poucos minutos depois de começares a usar a app.',
+'Legendary.':'Lendário.','Mythical.':'Mítico.','Ultra Beast.':'Ultra Beast.','Paradox.':'Paradox.','English':'English','Português':'Português'
 };
 // counter labels are shown lowercase in some sentences
 ['Encounters','Soft resets','Resets','Eggs hatched','Fishing encounters','Outbreak encounters'].forEach(k=>{PT[k.toLowerCase()]=PT[k].toLowerCase()});
@@ -542,6 +547,8 @@ const PT_UNIT={encounter:['encontro','o próximo'],egg:['ovo','o próximo'],rese
 const N='([\\d\\s,.\\u00a0\\u202f]+)';
 const trl=s=>PT[s]||PT[s.toLowerCase()]||s;
 const PT_RULES=[
+ [/^(\d+) hunts, (.+) total attempts$/,(m,n,c)=>n+' hunts, '+c+' tentativas no total'],
+ [/^Your current hunts are replaced by the copy from (.+)\. A copy of your current hunts is kept first\.$/,(m,d)=>'Os teus hunts atuais vão ser substituídos pela cópia de '+d+'. Antes disso é guardada uma cópia dos atuais.'],
  [/^(All|Active|Paused|Completed|Abandoned) \((\d+)\)$/,(m,a,b)=>({All:'Todos'}[a]||PT[a])+' ('+b+')'],
  [new RegExp('^'+N+' shin(?:y|ies) recorded\\.$'),(m,n)=>n.trim()+(n.trim()==='1'?' shiny registado.':' shinies registados.')],
  [new RegExp('^'+N+' species with hunt data$'),(m,n)=>n.trim()+(n.trim()==='1'?' espécie com guia':' espécies com guia')],
@@ -653,6 +660,9 @@ const formOf=(sp,i)=>{const f=SP[sp].forms;return f.length?f[Math.min(i||0,f.len
 const typePills=s=>s.types.map(t=>`<span class="type" style="--tc:${TYPES[t]}">${t[0].toUpperCase()+t.slice(1)}</span>`).join(' ');
 
 /* ========================= state & save system ========================= */
+// The mini counter window loads this same page with #mini. It only displays data and must NEVER save,
+// otherwise its stale copy would overwrite the real progress kept by the main window.
+const READ_ONLY_PAGE=location.hash==='#mini'&&!!window.__TAURI__;
 const KEY='shc.proto.v1';
 let S=null,dirty=false,lastSaved=Date.now();
 function defaultSettings(){return{theme:'dark',anim:true,sound:true,compact:false,scale:100,globalHotkeys:true,onTop:false,lang:'pt',
@@ -675,10 +685,23 @@ function seedDemo(){
 }
 function load(){try{const raw=localStorage.getItem(KEY);if(raw){const d=JSON.parse(raw);if(d&&Array.isArray(d.hunts)){d.settings={...defaultSettings(),...d.settings,keys:{...defaultSettings().keys,...(d.settings||{}).keys},overlay:{...defaultSettings().overlay,...(d.settings||{}).overlay}};S=d}}}catch(e){}
   if(!S)S=seed();}
-function save(){try{localStorage.setItem(KEY,JSON.stringify(S));lastSaved=Date.now();dirty=false}catch(e){toast('Progress could not be saved: browser storage is full or blocked.','danger')}}
-function touch(){if(typeof MINI_WINDOW!=='undefined'&&MINI_WINDOW)return;dirty=true;clearTimeout(touch.t);touch.t=setTimeout(save,250);broadcastState()}
+function save(){if(READ_ONLY_PAGE||!S)return;try{localStorage.setItem(KEY,JSON.stringify(S));lastSaved=Date.now();dirty=false;backupMaybe()}catch(e){toast('Progress could not be saved: browser storage is full or blocked.','danger')}}
+function touch(){if(READ_ONLY_PAGE)return;dirty=true;clearTimeout(touch.t);touch.t=setTimeout(save,250);broadcastState()}
 setInterval(()=>{if(dirty)save()},10000);
-addEventListener('beforeunload',()=>{const h=cur();save()});
+const BK='shc.backups';
+const snapshot=()=>JSON.stringify(S,(k,v)=>k==='shot'?undefined:v);
+function readBackups(){try{return JSON.parse(localStorage.getItem(BK)||'[]')}catch(e){return[]}}
+function backupMaybe(force){if(READ_ONLY_PAGE)return;try{let list=readBackups();const now=Date.now(),d=snapshot();
+  if(!force&&list.length&&(now-list[0].t<10*60e3||list[0].d===d))return;
+  list.unshift({t:now,d});localStorage.setItem(BK,JSON.stringify(list.slice(0,6)))}catch(e){}}
+function restoreBackup(i){const b=readBackups()[i];if(!b)return;backupMaybe(true);
+  const shots=Object.fromEntries(S.hunts.filter(h=>h.shot).map(h=>[h.id,h.shot]));const d=JSON.parse(b.d);
+  d.hunts.forEach(h=>{if(shots[h.id])h.shot=shots[h.id]});S=d;save();go('home');toast('Backup restored')}
+function openBackups(){const list=readBackups();
+  modal('Restore a backup',list.length?`<p class="muted small" style="margin-bottom:12px">The app keeps a copy of your hunts every 10 minutes. Restoring replaces your current hunts, but a copy of them is kept first.</p><div class="list">${list.map((b,i)=>{let n=0,c=0;try{const d=JSON.parse(b.d);n=d.hunts.length;c=d.hunts.reduce((a,h)=>a+h.count,0)}catch(e){}
+    return `<div class="row between" style="padding:10px 12px;border-radius:10px;background:var(--raised)"><span>${new Date(b.t).toLocaleString(LOC(),{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})}<br><span class="muted small">${n} hunts, ${fmt(c)} total attempts</span></span><button class="btn sm" data-a="restore" data-v="${i}">Restore</button></div>`}).join('')}</div>`
+    :`<p class="muted">There are no backups yet. The first one is made a few minutes after you start using the app.</p>`,[{label:'Close'}],true)}
+addEventListener('beforeunload',()=>{save()});
 document.addEventListener('visibilitychange',()=>{if(document.hidden)save()});
 
 const huntById=id=>S.hunts.find(h=>h.id===id);
@@ -841,7 +864,7 @@ function vHunt(){
    <div class="hhead">${orb(h.sp,{shiny:true,size:84})}<div><p class="muted small">Shiny hunt, #${dex3(s.dex)}</p><h1>${esc(s.name)}</h1>
      <div class="chips">${h.form?`<span class="pill">${esc(h.form)}</span>`:''}<span class="pill">${esc(g.name)}</span><span class="pill">${m.name}</span><span class="pill">${esc(loc.name)}</span><span class="pill ${h.status}">${cap(h.status)}</span></div></div></div>
    <div class="screen">
-     <div class="row between"><span class="lbl" data-b="label">${esc(h.label)}</span><button class="btn sm ghost" style="color:var(--screen-muted)" data-a="rename">Rename counter</button></div>
+     <div class="row between"><span class="lbl" data-b="label">${esc(h.label)}</span><span class="row" style="gap:4px"><button class="btn sm ghost" style="color:var(--screen-muted)" data-a="setcount" ${isClosed(h)?'disabled':''}>Set number</button><button class="btn sm ghost" style="color:var(--screen-muted)" data-a="rename">Rename counter</button></span></div>
      <div class="count" data-b="count" aria-live="polite">${fmt(h.count)}</div>
      ${chain?`<div class="chainrow"><div><b data-b="chain">${fmt(h.chain)}</b><span>Current chain</span></div><div><b data-b="best">${fmt(h.best)}</b><span>Highest chain</span></div><button class="btn sm" style="background:rgba(255,255,255,.08);color:var(--screen-ink);border-color:rgba(255,255,255,.12)" data-a="breakchain" ${closed?'disabled':''}>Chain broke</button></div>`:''}
      <button class="inc" data-a="inc" data-v="1" ${closed?'disabled':''}>+1 ${esc(m.unit)} <span class="kbd">${keyLabel(K.inc)}</span></button>
@@ -1068,6 +1091,7 @@ function vSettings(){const st=S.settings,K=st.keys,ov=st.overlay;
    <div class="panel"><h3>Data</h3>
     <div class="srow"><span>Export all hunts</span><span class="row"><button class="btn sm" data-a="export" data-v="json">JSON</button><button class="btn sm" data-a="export" data-v="csv">CSV</button></span></div>
     <div class="srow"><span>Import hunts from JSON</span><button class="btn sm" data-a="import">Import</button></div>
+    <div class="srow"><span>Automatic backups<br><span class="muted small">A copy every 10 minutes, the last 6 are kept.</span></span><button class="btn sm" data-a="backups">View backups</button></div>
     <div class="srow"><span>Autosave</span><span class="muted small" data-b="saved"></span></div>
     <div class="srow"><span>Reset all data<br><span class="muted small">Deletes every hunt and setting on this device.</span></span><button class="btn sm danger" data-a="resetall">Reset data</button></div></div>
   </div>`}
@@ -1128,6 +1152,10 @@ document.addEventListener('click',e=>{
     case 'found':confirmDo('Record your shiny?',`${esc(SP[h.sp].name)} after ${fmt(h.count)} ${esc(h.label.toLowerCase())}. The hunt is marked as completed.`,'Record shiny',()=>{endSession(h);h.status='completed';h.foundAt=Date.now();save();render();celebrate(h)},'gold');break;
     case 'reopen':h.status='active';h.foundAt=null;touch();render();break;
     case 'cel-close':$('.celebrate')?.remove();break;
+    case 'backups':openBackups();break;
+    case 'restore':{const b=readBackups()[+v];if(!b)break;closeModal();confirmDo('Restore this backup?','Your current hunts are replaced by the copy from '+new Date(b.t).toLocaleString(LOC(),{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})+'. A copy of your current hunts is kept first.','Restore backup',()=>restoreBackup(+v));break}
+    case 'setcount':modal('Set the counter',`<label class="f">${esc(tr(h.label))}<input type="text" inputmode="numeric" id="sc" value="${h.count}"></label>`,[{label:'Cancel'},{label:'Save',cls:'primary',fn:()=>{const n=parseInt(($('#sc').value||'').replace(/\D/g,''),10);if(isNaN(n)){toast('Enter a number.','danger');return false}
+      const d=n-h.count;h.count=n;if(h.session)h.session.count=Math.max(0,h.session.count+d);h.updatedAt=Date.now();touch();render()}}]);break;
     case 'rename':modal('Rename counter',`<label class="f">Counter name<input type="text" id="rn" value="${esc(tr(h.label))}" maxlength="28"></label>`,[{label:'Cancel'},{label:'Save name',cls:'primary',fn:()=>{const n=$('#rn').value.trim();if(!n){toast('Enter a name for the counter.','danger');return false}h.label=n;touch();render()}}]);break;
     case 'delhunt':confirmDo('Delete this hunt?',`${esc(SP[h.sp].name)} with ${fmt(h.count)} ${esc(h.label.toLowerCase())} and all its sessions will be removed. This cannot be undone.`,'Delete hunt',()=>{S.hunts=S.hunts.filter(x=>x.id!==h.id);if(S.current===h.id)S.current=S.hunts.find(x=>!isClosed(x))?.id||null;save();go('hunts')},'danger');break;
     case 'mini':S.settings.overlay.on=!S.settings.overlay.on;touch();render();break;
@@ -1242,7 +1270,7 @@ function applyOnTop(){if(!IS_DESKTOP||!TAURI.window)return;try{TAURI.window.getC
 
 /* ---------- mini counter as its own window (desktop only) ----------
    The main window owns all data. The mini window only shows a snapshot and sends back "+1". */
-const MINI_WINDOW=IS_DESKTOP&&location.hash==='#mini';
+const MINI_WINDOW=READ_ONLY_PAGE;
 const BC='BroadcastChannel' in window?new BroadcastChannel('shc-mini'):null;
 function miniSnapshot(){const h=cur(),ov=S.settings.overlay;if(!h)return{empty:true,lang:LANG()};
   return{empty:false,lang:LANG(),name:SP[h.sp].name,form:h.form||'',game:GM[h.game].short,count:h.count,label:tr(h.label),odds:oddsTxt(oddsOf(h)),
