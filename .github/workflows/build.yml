@@ -1,4 +1,4 @@
-name: Build Windows app
+name: Build app (Windows + Mac)
 
 on:
   workflow_dispatch:
@@ -10,7 +10,20 @@ permissions:
 
 jobs:
   build:
-    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: windows
+            platform: windows-latest
+            args: '--bundles nsis'
+            rust_targets: ''
+          - name: macos
+            platform: macos-latest
+            args: '--target universal-apple-darwin --bundles app,dmg'
+            rust_targets: 'aarch64-apple-darwin,x86_64-apple-darwin'
+
+    runs-on: ${{ matrix.platform }}
     steps:
       - uses: actions/checkout@v4
 
@@ -19,6 +32,8 @@ jobs:
           node-version: 20
 
       - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.rust_targets }}
 
       - uses: swatinem/rust-cache@v2
         with:
@@ -26,7 +41,7 @@ jobs:
 
       - run: npm install
 
-      - name: Build app and create release
+      - name: Build app and add it to the release
         id: tauri
         uses: tauri-apps/tauri-action@v0
         env:
@@ -34,11 +49,13 @@ jobs:
         with:
           tagName: v__VERSION__
           releaseName: Shiny Hunt Counter v__VERSION__
-          releaseBody: "Descarrega o ShinyHuntCounter-portable.exe para abrir logo, sem instalar, ou o setup.exe para instalar com atalho no menu Iniciar."
+          releaseBody: "Windows: descarrega o ShinyHuntCounter-portable.exe (abre logo) ou o setup.exe (instala). Mac: descarrega o ficheiro .dmg e arrasta a app para a pasta Aplicações."
           releaseDraft: false
           prerelease: false
+          args: ${{ matrix.args }}
 
       - name: Attach portable exe to the release
+        if: matrix.name == 'windows'
         shell: bash
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -46,10 +63,18 @@ jobs:
           cp src-tauri/target/release/shiny-hunt-counter.exe ShinyHuntCounter-portable.exe
           gh release upload "v${{ steps.tauri.outputs.appVersion }}" ShinyHuntCounter-portable.exe --clobber
 
-      - name: Keep a copy as a workflow artifact
+      - name: Keep a copy as a workflow artifact (Windows)
+        if: matrix.name == 'windows'
         uses: actions/upload-artifact@v4
         with:
           name: ShinyHuntCounter-windows
           path: |
             ShinyHuntCounter-portable.exe
             src-tauri/target/release/bundle/nsis/*.exe
+
+      - name: Keep a copy as a workflow artifact (Mac)
+        if: matrix.name == 'macos'
+        uses: actions/upload-artifact@v4
+        with:
+          name: ShinyHuntCounter-mac
+          path: src-tauri/target/universal-apple-darwin/release/bundle/dmg/*.dmg

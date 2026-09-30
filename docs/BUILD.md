@@ -4,7 +4,7 @@
 
 1. Faz as alterações (a app está toda em `src/index.html`).
 2. Aumenta a versão em `src-tauri/tauri.conf.json` e em `package.json` (por exemplo `0.1.0` → `0.1.1`).
-3. No GitHub: **Actions → Build Windows app → Run workflow**.
+3. No GitHub: **Actions → Build app (Windows + Mac) → Run workflow**. Gera as duas versões ao mesmo tempo.
 4. Ao fim de 10–15 minutos, a nova versão aparece em **Releases**.
 
 ## Compilar localmente (opcional)
@@ -20,5 +20,6 @@ npm run build   # gera o .exe em src-tauri/target/release/
 ## Detalhes técnicos
 
 - Tauri 2, com a interface em HTML/JS num único ficheiro (`src/index.html`).
+- macOS: build universal (Apple Silicon + Intel), assinatura ad-hoc (`signingIdentity: "-"`), `macOSPrivateApi` ativo para a janela transparente do mini contador.
 - Hotkeys globais através de `tauri-plugin-global-shortcut`.
 - Os dados ficam no armazenamento local do WebView2, na pasta de dados da app.
