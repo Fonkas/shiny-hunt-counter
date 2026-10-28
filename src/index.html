@@ -187,6 +187,18 @@ textarea{font-family:ui-monospace,Consolas,monospace;font-size:12px;min-height:1
 .chart text{fill:var(--muted);font:500 11px var(--body)}
 .chart .v{fill:var(--ink);font:600 11px var(--display)}
 .sesslist{display:flex;flex-direction:column;gap:6px;margin-top:12px;font-size:13.5px}
+.phasebar{position:relative;display:flex;align-items:center;gap:12px;margin-top:10px}
+.phasebar .btn{background:rgba(244,194,78,.12);border-color:rgba(244,194,78,.4);color:#F4C24E}
+.phasebar .btn:hover{background:rgba(244,194,78,.2)}
+.phasebar span{color:var(--screen-muted);font-size:13px;font-weight:600}
+.phlist{display:flex;flex-direction:column;gap:8px;margin-top:12px}
+.phrow{display:grid;grid-template-columns:auto minmax(0,1fr) auto auto auto;align-items:center;gap:10px;padding:8px 10px;border-radius:12px;background:var(--raised)}
+.pht b{display:block;font:700 14px var(--display)}.pht span{font-size:13.5px}
+.phn{text-align:right;font-size:12.5px;color:var(--muted);white-space:nowrap}.phn b{font:700 15px var(--display);color:var(--ink)}
+.phres{display:grid;grid-template-columns:1fr 1fr;gap:6px;max-height:250px;overflow:auto}
+.phopt{display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:10px;border:1px solid var(--line);background:var(--raised);color:var(--ink);cursor:pointer;text-align:left;font-size:13.5px}
+.phopt:hover{border-color:var(--accent)}.phopt.on{border-color:var(--gold);box-shadow:inset 0 0 0 1px var(--gold)}
+@media (max-width:600px){.phres{grid-template-columns:1fr}.phrow{grid-template-columns:auto 1fr auto}.phrow .btn{grid-row:2}}
 .sesslist div{display:flex;justify-content:space-between;gap:10px;padding:8px 10px;border-radius:10px;background:var(--raised)}
 
 /* wizard / grids */
@@ -539,7 +551,12 @@ const PT={
 'Restore a backup':'Restaurar uma cópia','Restore':'Restaurar','Restore this backup?':'Restaurar esta cópia?','Restore backup':'Restaurar cópia','Backup restored':'Cópia restaurada',
 'The app keeps a copy of your hunts every 10 minutes. Restoring replaces your current hunts, but a copy of them is kept first.':'A app guarda uma cópia dos teus hunts a cada 10 minutos. Restaurar substitui os hunts atuais, mas antes é guardada uma cópia deles.',
 'There are no backups yet. The first one is made a few minutes after you start using the app.':'Ainda não há cópias. A primeira é feita poucos minutos depois de começares a usar a app.',
-'Legendary.':'Lendário.','Mythical.':'Mítico.','Ultra Beast.':'Ultra Beast.','Paradox.':'Paradox.','English':'English','Português':'Português'
+'Phases':'Phases','Add phase':'Registar phase','Edit phase':'Editar phase','Pokémon found':'Pokémon que apareceu','Search by name or number':'Procura por nome ou número',
+'Counter when it appeared':'Contador quando apareceu','Filled in with the current counter. The main counter does not change.':'Preenchido com o contador atual. O contador principal não muda.',
+'Save changes':'Guardar alterações','Search and pick the Pokémon that appeared.':'Procura e escolhe o Pokémon que apareceu.','No Pokémon found.':'Nenhum Pokémon encontrado.',
+'Pick the Pokémon that appeared.':'Escolhe o Pokémon que apareceu.','Phase updated':'Phase atualizada','Delete this phase?':'Apagar esta phase?','Delete phase':'Apagar phase','Edit':'Editar',
+"Found a shiny that isn't your target? Record it as a phase with the button under the counter. The counter keeps going.":'Apareceu um shiny que não é o teu alvo? Regista-o como phase com o botão por baixo do contador. O contador continua normalmente.',
+'Phases recorded':'Phases registadas','Legendary.':'Lendário.','Mythical.':'Mítico.','Ultra Beast.':'Ultra Beast.','Paradox.':'Paradox.','English':'English','Português':'Português'
 };
 // counter labels are shown lowercase in some sentences
 ['Encounters','Soft resets','Resets','Eggs hatched','Fishing encounters','Outbreak encounters'].forEach(k=>{PT[k.toLowerCase()]=PT[k].toLowerCase()});
@@ -547,6 +564,9 @@ const PT_UNIT={encounter:['encontro','o próximo'],egg:['ovo','o próximo'],rese
 const N='([\\d\\s,.\\u00a0\\u202f]+)';
 const trl=s=>PT[s]||PT[s.toLowerCase()]||s;
 const PT_RULES=[
+ [/^Phase (\d+) recorded: (.+)$/,(m,n,s)=>'Phase '+n+' registada: '+s],
+ [/^Phase (\d+) \((.+)\) is removed from this hunt\. The counter does not change\.$/,(m,n,s)=>'A Phase '+n+' ('+s+') vai ser apagada deste hunt. O contador não muda.'],
+ [/^(\d+) phases? before this shiny: (.+)$/,(m,n,l)=>n+(n==='1'?' phase antes deste shiny: ':' phases antes deste shiny: ')+l],
  [/^(\d+) hunts, (.+) total attempts$/,(m,n,c)=>n+' hunts, '+c+' tentativas no total'],
  [/^Your current hunts are replaced by the copy from (.+)\. A copy of your current hunts is kept first\.$/,(m,d)=>'Os teus hunts atuais vão ser substituídos pela cópia de '+d+'. Antes disso é guardada uma cópia dos atuais.'],
  [/^(All|Active|Paused|Completed|Abandoned) \((\d+)\)$/,(m,a,b)=>({All:'Todos'}[a]||PT[a])+' ('+b+')'],
@@ -554,8 +574,8 @@ const PT_RULES=[
  [new RegExp('^'+N+' species with hunt data$'),(m,n)=>n.trim()+(n.trim()==='1'?' espécie com guia':' espécies com guia')],
  [new RegExp('^'+N+' Pokémon, (\\d+) guide entries$'),(m,n,g)=>n.trim()+' Pokémon, '+g+' entradas de guia'],
  [new RegExp('^'+N+' Pokémon$'),(m,n)=>n.trim()+' Pokémon'],
- [new RegExp('^'+N+' (.+?) with (.+)\\. (.+) tracked\\.$'),(m,n,l,me,d)=>n.trim()+' '+trl(l)+' com '+trl(me)+'. '+d+' registados.'],
- [new RegExp('^After '+N+' (.+?) with (.+)\\.$'),(m,n,l,me)=>'Após '+n.trim()+' '+trl(l)+' com '+trl(me)+'.'],
+ [new RegExp('^'+N+' (.+?) with (.+)\\. (.+) tracked\\.$'),(m,n,l,me,d)=>n.trim()+' '+trl(l)+' com '+trl(me).replace(/^./,c=>c.toLowerCase())+'. '+d+' registados.'],
+ [new RegExp('^After '+N+' (.+?) with (.+)\\.$'),(m,n,l,me)=>'Após '+n.trim()+' '+trl(l)+' com '+trl(me).replace(/^./,c=>c.toLowerCase())+'.'],
  [/^Base (1 \/ .+)$/,(m,o)=>'Base '+o],[/^Best odds (.+)$/,(m,o)=>'Melhores odds '+o],
  [/^Chance of having seen at least one shiny by now\. It is not a countdown: the next (\w+) has the same odds as the first\. You are at$/,(m,u)=>{const x=PT_UNIT[u]||[u,'o próximo'];return 'Probabilidade de já teres visto pelo menos um shiny. Não é uma contagem decrescente: '+x[1]+' '+x[0]+' tem as mesmas odds que o primeiro. Já fizeste'}],
  [/^Average (\w+) time$/,(m,u)=>'Tempo médio por '+((PT_UNIT[u]||[u])[0])],
@@ -711,6 +731,8 @@ const oddsOf=h=>{const o=entryOf(h).odds;return o[Math.min(h.odds,o.length-1)]};
 const sessMs=h=>h.session?h.session.activeMs+(h.session.runFrom?Date.now()-h.session.runFrom:0):0;
 const totalMs=h=>h.sessions.reduce((a,s)=>a+s.activeMs,0)+sessMs(h);
 const isClosed=h=>h.status==='completed'||h.status==='abandoned';
+// Phases: shinies found during a hunt that were not the target. They never touch the main counter.
+const phasesOf=h=>(h.phases||[]).slice().sort((a,b)=>a.count-b.count||a.at-b.at);
 
 /* ========================= counter system ========================= */
 function startSession(h){h.session={start:Date.now(),activeMs:0,runFrom:Date.now(),count:0}}
@@ -758,6 +780,7 @@ function celebrate(h){
   el.innerHTML=parts+`<div class="card">${orb(h.sp,{shiny:true,size:150})}<h1>Shiny found!</h1>
     <p style="font:600 20px var(--display)">${esc(s.name)} in ${esc(g.name)}</p>
     <p class="muted" style="color:#C9CEEA">${fmt(h.count)} ${esc(h.label.toLowerCase())} with ${METHODS[h.method].name}. ${shortDur(totalMs(h))} tracked.</p>
+    ${phasesOf(h).length?`<p style="color:#C9CEEA">${phasesOf(h).length} ${phasesOf(h).length===1?'phase':'phases'} before this shiny: ${phasesOf(h).map(p=>esc(SP[p.sp].name)).join(', ')}</p>`:''}
     <div class="row" style="justify-content:center;margin-top:10px"><button class="btn gold" data-a="go" data-v="history">Open shiny history</button><button class="btn" data-a="cel-close">Close</button></div></div>`;
   document.body.appendChild(el);el.querySelector('[data-a="cel-close"]').focus();
 }
@@ -794,7 +817,7 @@ function render(){applySettings();renderTop();
 }
 const NAV=[['home','Home'],['hunts','My hunts'],['dex','Database'],['games','Games'],['history','History'],['stats','Statistics'],['settings','Settings']];
 function renderTop(){
-  const enc=S.hunts.reduce((a,h)=>a+h.count,0),shinies=S.hunts.filter(h=>h.status==='completed').length;
+  const enc=S.hunts.reduce((a,h)=>a+h.count,0),shinies=S.hunts.filter(h=>h.status==='completed').length+S.hunts.reduce((a,h)=>a+(h.phases||[]).length,0);
   const on=view.name==='hunt'||view.name==='new'?'hunts':view.name;
   $('#top').innerHTML=`<button class="brand" data-a="go" data-v="home" aria-label="Home">
     <svg width="30" height="30" viewBox="0 0 32 32" aria-hidden="true"><defs><linearGradient id="lg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#F4C24E"/><stop offset=".55" stop-color="#7FE3C4"/><stop offset="1" stop-color="#B79CFF"/></linearGradient></defs>
@@ -869,6 +892,7 @@ function vHunt(){
      ${chain?`<div class="chainrow"><div><b data-b="chain">${fmt(h.chain)}</b><span>Current chain</span></div><div><b data-b="best">${fmt(h.best)}</b><span>Highest chain</span></div><button class="btn sm" style="background:rgba(255,255,255,.08);color:var(--screen-ink);border-color:rgba(255,255,255,.12)" data-a="breakchain" ${closed?'disabled':''}>Chain broke</button></div>`:''}
      <button class="inc" data-a="inc" data-v="1" ${closed?'disabled':''}>+1 ${esc(m.unit)} <span class="kbd">${keyLabel(K.inc)}</span></button>
      <div class="subbtns"><button class="btn" data-a="inc" data-v="10" ${closed?'disabled':''}>+10</button><button class="btn" data-a="inc" data-v="100" ${closed?'disabled':''}>+100</button><button class="btn" data-a="inc" data-v="-1" ${closed?'disabled':''}>−1 <span class="kbd">${keyLabel(K.undo)}</span></button><button class="btn danger" data-a="reset" ${closed?'disabled':''}>Reset</button></div>
+     <div class="phasebar"><button class="btn" data-a="ph-add">+ Phase</button>${phasesOf(h).length?`<span>${phasesOf(h).length} ${phasesOf(h).length===1?'phase':'phases'}</span>`:''}</div>
    </div>
    <div class="panel sessbar" style="margin-top:14px">
      <div class="clock"><span data-b="sess">${hms(sessMs(h))}</span><small>${sess?(running?'Session running':'Session paused'):'No session running'}. Total <span data-b="total">${hms(totalMs(h))}</span></small></div>
@@ -876,6 +900,7 @@ function vHunt(){
      ${h.status==='completed'?`<button class="btn" data-a="reopen">Reopen hunt</button>`:closed?'':`<button class="btn gold" data-a="found">I found it!</button>`}
    </div>
    ${h.status==='completed'?`<div class="panel" style="margin-top:14px;background:color-mix(in srgb,var(--gold) 10%,var(--panel))"><h3>Shiny found on ${dateStr(h.foundAt)}</h3><p class="muted small">After ${fmt(h.count)} ${esc(h.label.toLowerCase())} with ${m.name}.</p></div>`:''}
+   ${phasePanel(h)}
   </div>
   <div class="stack">
    <div class="panel"><div class="row between"><h3>Shiny odds</h3>${e.odds.length>1?`<select data-c="hodds" aria-label="Odds modifier" style="width:auto;max-width:60%">${e.odds.map((o,i)=>`<option value="${i}" ${h.odds===i?'selected':''}>${esc(o[0])}</option>`).join('')}</select>`:`<span class="muted small">${esc(e.odds[0][0])}</span>`}</div>
@@ -903,6 +928,36 @@ function vHunt(){
      :`<p class="muted small" style="margin-top:8px">Finished sessions are listed here. A session starts on your first +1.</p>`}</div>
   </div></div>`;
 }
+function phasePanel(h){const ps=phasesOf(h);
+  return `<div class="panel" style="margin-top:14px"><div class="row between"><h3>Phases</h3>${ps.length?`<span class="muted small">${ps.length} ${ps.length===1?'phase':'phases'}</span>`:''}</div>
+   ${ps.length?`<div class="phlist">${ps.map((p,i)=>`<div class="phrow">${orb(p.sp,{shiny:true,size:40})}
+     <div class="pht"><b>Phase ${i+1}</b><span>${esc(SP[p.sp].name)}</span></div>
+     <div class="phn"><b>${fmt(p.count)}</b> <span>${esc(h.label.toLowerCase())}</span></div>
+     <button class="btn sm ghost" data-a="ph-edit" data-v="${p.id}">Edit</button><button class="btn sm ghost danger" data-a="ph-del" data-v="${p.id}">Delete</button></div>`).join('')}</div>`
+   :`<p class="muted small" style="margin-top:6px">Found a shiny that isn't your target? Record it as a phase with the button under the counter. The counter keeps going.</p>`}</div>`}
+let phDraft=null;
+function phaseModal(h,p){phDraft={hid:h.id,id:p?p.id:null,sp:p?p.sp:null,q:''};
+  modal(p?'Edit phase':'Add phase',`<label class="f">Pokémon found<input type="search" id="phq" data-c="phq" placeholder="Search by name or number" autocomplete="off"></label>
+    <div id="phsel" style="margin:12px 0"></div><div id="phres" class="phres"></div>
+    <label class="f" style="margin-top:14px">Counter when it appeared<input type="text" inputmode="numeric" id="phc" value="${p?p.count:h.count}"></label>
+    <p class="muted small" style="margin-top:6px">Filled in with the current counter. The main counter does not change.</p>`,
+    [{label:'Cancel'},{label:p?'Save changes':'Add phase',cls:'primary',fn:savePhase}]);
+  drawPhaseResults()}
+function drawPhaseResults(){if(!phDraft)return;const q=phDraft.q.trim().toLowerCase().replace(/^#/,'');
+  const list=q?SPECIES.filter(s=>/^\d+$/.test(q)?(s.dex===+q||dex3(s.dex).startsWith(q)):s.name.toLowerCase().includes(q)).slice(0,10):[];
+  const res=$('#phres'),sel=$('#phsel');if(!res||!sel)return;
+  res.innerHTML=list.map(s=>`<button class="phopt ${phDraft.sp===s.dex?'on':''}" data-a="ph-pick" data-v="${s.dex}">${orb(s.dex,{size:30})}<span>#${dex3(s.dex)} ${esc(s.name)}</span></button>`).join('')
+    ||(q?`<p class="muted small">No Pokémon found.</p>`:'');
+  sel.innerHTML=phDraft.sp?`<div class="row">${orb(phDraft.sp,{shiny:true,size:46})}<div><b style="font:700 17px var(--display)">${esc(SP[phDraft.sp].name)}</b><br><span class="muted small">#${dex3(phDraft.sp)}</span></div></div>`
+    :`<p class="muted small">Search and pick the Pokémon that appeared.</p>`}
+function savePhase(){const h=huntById(phDraft&&phDraft.hid);if(!h)return;
+  if(!phDraft.sp){toast('Pick the Pokémon that appeared.','danger');return false}
+  const n=parseInt(($('#phc').value||'').replace(/\D/g,''),10);if(isNaN(n)){toast('Enter a number.','danger');return false}
+  h.phases=h.phases||[];
+  if(phDraft.id){const p=h.phases.find(x=>x.id===phDraft.id);if(p){p.sp=phDraft.sp;p.count=n};toast('Phase updated')}
+  else{const id=uid();h.phases.push({id,sp:phDraft.sp,count:n,at:Date.now()});const k=phasesOf(h).findIndex(x=>x.id===id)+1;
+    toast('Phase '+k+' recorded: '+SP[phDraft.sp].name,'ms');tone([1319,1760],.18,'sine',.08,.05)}
+  h.updatedAt=Date.now();phDraft=null;touch();render()}
 function bars(vals,labels){const W=460,H=150,pb=22,max=Math.max(...vals,1),n=vals.length,bw=Math.min(46,(W-20)/n-10);
   const gap=(W-n*bw)/(n+1);
   return `<svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="Bar chart">${vals.map((v,i)=>{const h=Math.max(2,(H-pb-18)*v/max),x=gap+i*(bw+gap),y=H-pb-h;
@@ -1034,7 +1089,8 @@ function vHistory(){const list=S.hunts.filter(h=>h.status==='completed').sort((a
   ${list.length?`<div class="hist">${list.map(h=>`<article class="hcard"><div class="shot" style="${h.shot?`background-image:url(${h.shot})`:''}">
      ${h.shot?'':'No screenshot yet'}${orb(h.sp,{shiny:true,size:64})}</div>
     <div class="body"><h3>${esc(SP[h.sp].name)}</h3><p class="muted small">${esc(GM[h.game].name)}</p>
-    <dl class="kv" style="margin-top:12px"><dt>${esc(h.label)}</dt><dd>${fmt(h.count)}</dd><dt>Method</dt><dd>${METHODS[h.method].name}</dd><dt>Found</dt><dd>${dateStr(h.foundAt)}, ${new Date(h.foundAt).toLocaleTimeString(LOC(),{hour:'2-digit',minute:'2-digit'})}</dd><dt>Time tracked</dt><dd>${shortDur(totalMs(h))}</dd></dl>
+    <dl class="kv" style="margin-top:12px"><dt>${esc(h.label)}</dt><dd>${fmt(h.count)}</dd><dt>Method</dt><dd>${METHODS[h.method].name}</dd><dt>Found</dt><dd>${dateStr(h.foundAt)}, ${new Date(h.foundAt).toLocaleTimeString(LOC(),{hour:'2-digit',minute:'2-digit'})}</dd><dt>Time tracked</dt><dd>${shortDur(totalMs(h))}</dd>${phasesOf(h).length?`<dt>Phases</dt><dd>${phasesOf(h).length}</dd>`:''}</dl>
+    ${phasesOf(h).length?`<div class="sesslist">${phasesOf(h).map((p,i)=>`<div><span>Phase ${i+1}: ${esc(SP[p.sp].name)}</span><b>${fmt(p.count)}</b></div>`).join('')}</div>`:''}
     <div class="row" style="margin-top:14px"><label class="btn sm" style="cursor:pointer">${h.shot?'Replace':'Add'} screenshot<input type="file" accept="image/*" data-c="shot" data-v="${h.id}" hidden></label><button class="btn sm ghost" data-a="open" data-v="${h.id}">Open hunt</button></div></div></article>`).join('')}</div>`
   :`<div class="empty"><h3>No shinies yet</h3><p>When you press “I found it!” on a hunt, it is recorded here with the date and attempt count.</p></div>`}`}
 
@@ -1049,7 +1105,7 @@ function vStats(){const H=S.hunts,done=H.filter(h=>h.status==='completed');
   return `<h1 style="font-size:34px">Statistics</h1>
   <div class="settings" style="margin-top:18px">
    <div class="panel"><h3>All hunts</h3><dl class="kv" style="margin-top:12px"><dt>Total attempts</dt><dd>${fmt(total)}</dd><dt>Time tracked</dt><dd>${shortDur(time)}</dd><dt>Average per hour</dt><dd>${time>60000?fmt(Math.round(total/(time/36e5))):'—'}</dd>
-    <dt>Shinies found</dt><dd>${done.length}</dd><dt>Average attempts per shiny</dt><dd>${done.length?fmt(Math.round(done.reduce((a,h)=>a+h.count,0)/done.length)):'—'}</dd><dt>Most used method</dt><dd>${topM?METHODS[topM[0]].name:'—'}</dd>
+    <dt>Shinies found</dt><dd>${done.length}</dd><dt>Phases recorded</dt><dd>${H.reduce((a,h)=>a+(h.phases||[]).length,0)}</dd><dt>Average attempts per shiny</dt><dd>${done.length?fmt(Math.round(done.reduce((a,h)=>a+h.count,0)/done.length)):'—'}</dd><dt>Most used method</dt><dd>${topM?METHODS[topM[0]].name:'—'}</dd>
     <dt>Sessions</dt><dd>${H.reduce((a,h)=>a+h.sessions.length,0)}</dd></dl></div>
    <div class="panel"><h3>Attempts over the last 14 days</h3>${bars(perDay,days.map(t=>new Date(t).getDate()))}</div>
   </div>
@@ -1123,8 +1179,8 @@ function createHunt(entryId,loc,odds,label,form){const h=mkHunt(entryId,loc,odds
   toast(`Hunt started. Press ${keyLabel(S.settings.keys.inc)} to count.`)}
 function download(kind){
   let text;if(kind==='json')text=JSON.stringify({app:'shiny-hunt-counter',exportedAt:new Date().toISOString(),...S},null,2);
-  else{const rows=[['id','pokemon','dex','game','method','counter_name','count','status','created','found','time_ms']];
-    S.hunts.forEach(h=>rows.push([h.id,SP[h.sp].name,h.sp,GM[h.game].name,METHODS[h.method].name,h.label,h.count,h.status,new Date(h.createdAt).toISOString(),h.foundAt?new Date(h.foundAt).toISOString():'',totalMs(h)]));
+  else{const rows=[['id','pokemon','dex','game','method','counter_name','count','status','created','found','time_ms','phases']];
+    S.hunts.forEach(h=>rows.push([h.id,SP[h.sp].name,h.sp,GM[h.game].name,METHODS[h.method].name,h.label,h.count,h.status,new Date(h.createdAt).toISOString(),h.foundAt?new Date(h.foundAt).toISOString():'',totalMs(h),phasesOf(h).map(p=>SP[p.sp].name+' @ '+p.count).join('; ')]));
     text=rows.map(r=>r.map(c=>/[",\n]/.test(String(c))?'"'+String(c).replace(/"/g,'""')+'"':c).join(',')).join('\n')}
   modal('Export '+kind.toUpperCase(),`<p class="muted small" style="margin-bottom:10px">Copy this and keep it somewhere safe. The desktop app saves it straight to a file.</p><textarea id="exp" readonly>${esc(text)}</textarea>`,
    [{label:'Close'},{label:'Copy',cls:'primary',fn:()=>{const t=$('#exp');t.select();(navigator.clipboard?navigator.clipboard.writeText(t.value):Promise.reject()).then(()=>toast('Copied'),()=>{document.execCommand&&document.execCommand('copy');toast('Copied')});return false}}],true)}
@@ -1153,6 +1209,11 @@ document.addEventListener('click',e=>{
     case 'reopen':h.status='active';h.foundAt=null;touch();render();break;
     case 'cel-close':$('.celebrate')?.remove();break;
     case 'backups':openBackups();break;
+    case 'ph-add':phaseModal(h);break;
+    case 'ph-edit':{const p=(h.phases||[]).find(x=>x.id===v);if(p)phaseModal(h,p);break}
+    case 'ph-pick':if(phDraft){phDraft.sp=+v;drawPhaseResults()}break;
+    case 'ph-del':{const ps=phasesOf(h),k=ps.findIndex(x=>x.id===v);if(k<0)break;
+      confirmDo('Delete this phase?','Phase '+(k+1)+' ('+esc(SP[ps[k].sp].name)+') is removed from this hunt. The counter does not change.','Delete phase',()=>{h.phases=h.phases.filter(x=>x.id!==v);touch();render()},'danger');break}
     case 'restore':{const b=readBackups()[+v];if(!b)break;closeModal();confirmDo('Restore this backup?','Your current hunts are replaced by the copy from '+new Date(b.t).toLocaleString(LOC(),{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})+'. A copy of your current hunts is kept first.','Restore backup',()=>restoreBackup(+v));break}
     case 'setcount':modal('Set the counter',`<label class="f">${esc(tr(h.label))}<input type="text" inputmode="numeric" id="sc" value="${h.count}"></label>`,[{label:'Cancel'},{label:'Save',cls:'primary',fn:()=>{const n=parseInt(($('#sc').value||'').replace(/\D/g,''),10);if(isNaN(n)){toast('Enter a number.','danger');return false}
       const d=n-h.count;h.count=n;if(h.session)h.session.count=Math.max(0,h.session.count+d);h.updatedAt=Date.now();touch();render()}}]);break;
@@ -1191,6 +1252,7 @@ document.addEventListener('click',e=>{
 document.addEventListener('input',e=>{const t=e.target,c=t.dataset.c;if(!c)return;
   if(c==='q'){fOf(t.dataset.ctx).q=t.value;regrid(t.dataset.ctx)}
   else if(c==='wlabel')wiz.label=t.value;
+  else if(c==='phq'){if(phDraft){phDraft.q=t.value;drawPhaseResults()}}
   else if(c==='profile'){S.settings.profile=t.value||'Local save';touch();renderTop()}
   else if(c==='opacity'){S.settings.overlay.opacity=+t.value;const m=$('.mini');if(m)m.style.setProperty('--op',t.value/100);touch()}
 });
